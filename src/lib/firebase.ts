@@ -11,10 +11,6 @@ export const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// --- START DIAGNOSTIC LOG ---
-console.log('[Firebase Init] Attempting to initialize with this config:', firebaseConfig);
-// --- END DIAGNOSTIC LOG ---
-
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
