@@ -21,9 +21,11 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[LoginPage] De functie handleLogin is AANGEROEPEN.');
     setLoading(true);
 
     if (!email || !password) {
+        console.log('[LoginPage] Fout: E-mail of wachtwoord is leeg.');
         toast({
             variant: 'destructive',
             title: 'Login Mislukt',
@@ -34,12 +36,16 @@ export default function LoginPage() {
     }
 
     try {
+      console.log(`[LoginPage] Poging tot inloggen met Firebase voor e-mail: ${email}`);
       await signInWithEmailAndPassword(auth, email, password);
-      // The onAuthStateChanged listener in AuthProvider will handle everything else.
-      // We just need to navigate to the dashboard.
+      console.log('[LoginPage] SUCCES: signInWithEmailAndPassword is geslaagd!');
+      
+      // De AuthProvider zal de gebruiker nu moeten oppikken.
+      // We navigeren naar het dashboard.
       router.push('/dashboard');
+
     } catch (error: any) {
-      console.error("Login Failed:", error);
+      console.error("[LoginPage] FOUT: Er is een fout opgetreden in signInWithEmailAndPassword:", error);
       let errorMessage = 'Inloggen mislukt. Probeer het opnieuw.';
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         errorMessage = 'Ongeldige inloggegevens. Controleer uw e-mailadres en wachtwoord.';
