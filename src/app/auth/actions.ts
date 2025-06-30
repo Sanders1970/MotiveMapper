@@ -72,7 +72,7 @@ export async function registerAction(
       lastLogin: serverTimestamp(),
     });
   } catch (error: any) {
-    console.error('Registration error:', JSON.stringify(error, null, 2));
+    console.error('Registration error:', error);
 
     let errorMessage = 'An unexpected error occurred during registration.';
     if (error && typeof error === 'object' && 'code' in error) {
@@ -138,7 +138,7 @@ export async function loginAction(
       { merge: true }
     );
   } catch (error: any) {
-    console.error('Login error:', JSON.stringify(error, null, 2));
+    console.error('Login error:', error);
 
      if (error && typeof error === 'object' && 'code' in error) {
         const firebaseError = error as { code: string; message: string };
@@ -151,12 +151,10 @@ export async function loginAction(
             case 'firestore/permission-denied':
                 return { error: 'Login failed: Insufficient permissions to update user profile. Please check your Firestore rules.'};
             default:
-                console.error('Login error:', firebaseError);
                 return { error: `Er is een onverwachte fout opgetreden: ${firebaseError.message}` };
         }
     }
     
-    console.error('Login error:', error);
     return {
       error: 'Er is een onverwachte fout opgetreden tijdens het inloggen.',
     };
