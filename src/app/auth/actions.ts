@@ -72,11 +72,8 @@ export async function registerAction(
       parentId: null,
     });
     
-  } catch (error) {
-    if (error instanceof Error) {
-      return { error: `Registratie mislukt: ${error.message}` };
-    }
-    return { error: 'Er is een onbekende fout opgetreden bij de registratie.' };
+  } catch (error: any) {
+    return { error: error.message || 'Registratie mislukt: er is een onbekende fout opgetreden.' };
   }
 
   redirect('/dashboard');
@@ -110,11 +107,8 @@ export async function loginAction(
     await updateDoc(doc(db, 'users', userCredential.user.uid), {
       lastLogin: serverTimestamp(),
     });
-  } catch (error) {
-    if (error instanceof Error) {
-      return { error: `Inloggen mislukt: ${error.message}` };
-    }
-    return { error: 'Er is een onbekende fout opgetreden bij het inloggen.' };
+  } catch (error: any) {
+     return { error: error.message || 'Inloggen mislukt: er is een onbekende fout opgetreden.' };
   }
 
   redirect('/dashboard');
@@ -143,8 +137,6 @@ export async function forgotPasswordAction(
       success: `Als er een account bestaat voor ${email}, is er een herstellink verzonden.`,
     };
   } catch (error) {
-     // Also return a generic success message on error to avoid user enumeration.
-     // This prevents disclosing whether a user is registered or not.
      return {
       success: `Als er een account bestaat voor ${email}, is er een herstellink verzonden.`,
     };
