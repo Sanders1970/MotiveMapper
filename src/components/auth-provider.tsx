@@ -3,7 +3,7 @@
 import { auth, db } from '@/lib/firebase';
 import type { User } from '@/lib/types';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { createContext, useEffect, useState } from 'react';
 
 export interface AuthContextType {
@@ -23,6 +23,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
+        // This is a new login or session restoration.
+        // Update the lastLogin timestamp. This is robust and fixes data inconsistencies.
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        updateDoc(userDocRef, { lastLogin: serverTimestamp() }).catch(err => {
+            console.error("Failed to update lastLogin. This might be expected if the user document doesn't exist yet during registration.", err.code);
+        });
+
         // Base user object is available immediately. This prevents redirect loops.
         setUser({ 
             uid: firebaseUser.uid,
@@ -32,7 +39,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } as User);
 
         // Now, listen for the full user profile from Firestore.
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
         const unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             // Firestore doc exists, merge with existing data to get the full profile.
