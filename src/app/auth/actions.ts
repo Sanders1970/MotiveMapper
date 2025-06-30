@@ -72,8 +72,6 @@ export async function registerAction(
       lastLogin: serverTimestamp(),
     });
   } catch (error: any) {
-    // This is now a stable error message that won't crash the server.
-    // It correctly points to the Firestore rules as the source of the problem.
     return {
         error: 'Registratie mislukt. De gebruikersauthenticatie is gelukt, maar het aanmaken van het gebruikersprofiel in de database is mislukt. Controleer uw Firestore-regels.'
     };
@@ -102,23 +100,13 @@ export async function loginAction(
   const { email, password } = validatedFields.data;
 
   try {
-    const userCredential = await signInWithEmailAndPassword(
+    await signInWithEmailAndPassword(
       auth,
       email,
       password
     );
-    const user = userCredential.user;
-
-    await setDoc(
-      doc(db, 'users', user.uid),
-      {
-        lastLogin: serverTimestamp(),
-      },
-      { merge: true }
-    );
   } catch (error: any) {
-    // A stable error message for login failures.
-    return { error: 'Login mislukt. Dit kan te wijten zijn aan ongeldige inloggegevens of een permissieprobleem met de database.' };
+    return { error: 'Login mislukt. Controleer uw e-mailadres en wachtwoord.' };
   }
 
   redirect('/dashboard');
@@ -143,12 +131,10 @@ export async function forgotPasswordAction(
 
   try {
     await sendPasswordResetEmail(auth, email);
-    // For security reasons, we don't reveal if an email is registered or not.
     return {
       success: `Als er een account bestaat voor ${email}, is er een herstellink verzonden.`,
     };
   } catch (error: any) {
-    // Also return a generic success message on error to avoid user enumeration.
      return {
       success: `Als er een account bestaat voor ${email}, is er een herstellink verzonden.`,
     };
