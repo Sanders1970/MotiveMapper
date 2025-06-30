@@ -24,35 +24,40 @@ export const AuthContext = createContext<AuthContextType>({
 async function getUserProfile(firebaseUser: FirebaseUser): Promise<User | null> {
   const userDocRef = doc(db, 'users', firebaseUser.uid);
   console.log(`[AuthProvider] Stap 2: Firestore document opvragen voor UID: ${firebaseUser.uid}`);
-  const docSnap = await getDoc(userDocRef);
+  
+  try {
+    const docSnap = await getDoc(userDocRef);
 
-  if (docSnap.exists()) {
-    console.log('[AuthProvider] Stap 3: Document gevonden in Firestore.');
-    const data = docSnap.data();
+    if (docSnap.exists()) {
+      console.log('[AuthProvider] Stap 3: Document gevonden in Firestore.');
+      const data = docSnap.data();
 
-    // Update last login timestamp
-    try {
-        await updateDoc(userDocRef, { lastLogin: serverTimestamp() });
-        console.log('[AuthProvider] Stap 4: "lastLogin" tijdstip bijgewerkt.');
-    } catch (error) {
-        console.error('[AuthProvider] Fout bij bijwerken lastLogin:', error);
-        // Continue even if this fails
+      // Update last login timestamp in the background
+      updateDoc(userDocRef, { lastLogin: serverTimestamp() }).catch(err => {
+        console.warn('[AuthProvider] Waarschuwing: "lastLogin" tijdstip kon niet worden bijgewerkt.', err.message);
+      });
+
+      const userProfile: User = {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        displayName: data.displayName || 'Gebruiker',
+        role: data.role || 'user',
+        createdAt: data.createdAt || null,
+        lastLogin: data.lastLogin || null,
+        parentId: data.parentId || null,
+      };
+      console.log('[AuthProvider] Stap 4: Gebruikersprofiel succesvol samengesteld:', userProfile);
+      return userProfile;
+    } else {
+      console.error(`[AuthProvider] FOUT: Geen document gevonden in Firestore voor UID: ${firebaseUser.uid}. De gebruiker bestaat in Authentication, maar heeft geen profiel in de database.`);
+      return null;
     }
-
-
-    const userProfile: User = {
-      uid: firebaseUser.uid,
-      email: firebaseUser.email,
-      displayName: data.displayName || 'Gebruiker',
-      role: data.role || 'user',
-      createdAt: data.createdAt || null,
-      lastLogin: data.lastLogin || null, // This will be slightly old, but fine
-      parentId: data.parentId || null,
-    };
-    console.log('[AuthProvider] Stap 5: Gebruikersprofiel succesvol samengesteld:', userProfile);
-    return userProfile;
-  } else {
-    console.error(`[AuthProvider] FOUT: Geen document gevonden in Firestore voor UID: ${firebaseUser.uid}. Inloggen mislukt.`);
+  } catch (error: any) {
+    if (error.code === 'unavailable' || (error.message && error.message.includes('offline'))) {
+       console.error('[AuthProvider] KRITIEKE FOUT: Kan geen verbinding maken met Firestore. De client is "offline". Controleer of de Firestore Database is aangemaakt en geactiveerd in uw Firebase-project.', error);
+    } else {
+      console.error('[AuthProvider] Kritieke fout bij ophalen profiel:', error);
+    }
     return null;
   }
 }
@@ -65,13 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         console.log('[AuthProvider] Stap 1: Gebruiker is ingelogd bij Firebase Authentication. UID:', firebaseUser.uid);
-        try {
-          const userProfile = await getUserProfile(firebaseUser);
-          setUser(userProfile);
-        } catch (error) {
-          console.error('[AuthProvider] Kritieke fout bij ophalen profiel:', error);
-          setUser(null);
-        }
+        const userProfile = await getUserProfile(firebaseUser);
+        setUser(userProfile);
       } else {
         console.log('[AuthProvider] Gebruiker is uitgelogd of niet gevonden.');
         setUser(null);
