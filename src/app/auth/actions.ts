@@ -96,8 +96,8 @@ export async function registerAction(
           'Registratie mislukt: onvoldoende rechten om gebruikersprofiel aan te maken. Controleer je Firestore-regels.',
       };
     }
-    const errorMessage = error.message ? `: ${error.message}` : '.';
-    return { error: `Er is een onverwachte fout opgetreden bij de registratie${errorMessage}` };
+    console.error("Registration error:", error);
+    return { error: 'Er is een onverwachte fout opgetreden bij de registratie.' };
   }
 
   redirect('/dashboard');
@@ -149,8 +149,8 @@ export async function loginAction(
     ) {
       return { error: 'Ongeldig emailadres of wachtwoord.' };
     }
-    const errorMessage = error.message ? `: ${error.message}` : '.';
-    return { error: `Er is een onverwachte fout opgetreden tijdens het inloggen${errorMessage}` };
+    console.error("Login error:", error);
+    return { error: 'Er is een onverwachte fout opgetreden tijdens het inloggen.' };
   }
 
   redirect('/dashboard');
