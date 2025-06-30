@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
@@ -29,8 +28,8 @@ export default function LoginPage() {
       console.log(`[LoginPage] Stap B: Poging tot inloggen met email: ${email}`);
       await signInWithEmailAndPassword(auth, email, password);
       console.log('[LoginPage] Stap C: Inloggen bij Firebase was succesvol.');
-      // De AuthProvider pikt de ingelogde gebruiker op en de redirect naar
-      // het dashboard wordt daar of in de dashboard layout afgehandeld.
+      // The AuthProvider will pick up the logged-in user and handle the redirect.
+      // A direct push to the dashboard is a good fallback.
       router.push('/dashboard');
 
     } catch (error: any) {
@@ -54,7 +53,7 @@ export default function LoginPage() {
         <CardHeader className="text-center">
            <Rocket className="mx-auto h-12 w-12 text-primary" />
           <CardTitle className="text-2xl font-headline mt-4">Welkom bij MotiveMapper</CardTitle>
-          <CardDescription>Log in op je account om door te gaan.</CardDescription>
+          <CardDescription>Log in op uw account om verder te gaan.</CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
