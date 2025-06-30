@@ -70,7 +70,7 @@ export default function RegisterPage() {
             <SubmitButton />
             <div className="text-center text-sm text-muted-foreground">
               Al een account?{" "}
-              <Link href="/login" className="underline text-primary hover:text-primary/80">
+              <Link href="/login" className="underline text-secondary hover:text-secondary/80">
                 Inloggen
               </Link>
             </div>

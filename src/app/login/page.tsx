@@ -66,7 +66,7 @@ export default function LoginPage() {
             <SubmitButton />
             <div className="text-center text-sm text-muted-foreground">
               Nog geen account?{" "}
-              <Link href="/register" className="underline text-primary hover:text-primary/80">
+              <Link href="/register" className="underline text-secondary hover:text-secondary/80">
                 Registreren
               </Link>
             </div>
