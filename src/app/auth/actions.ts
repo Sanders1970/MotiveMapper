@@ -5,8 +5,9 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  updateProfile,
 } from 'firebase/auth';
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
@@ -63,6 +64,7 @@ export async function registerAction(
     );
     const user = userCredential.user;
 
+    // This is the operation that likely fails due to Firestore rules
     await setDoc(doc(db, 'users', user.uid), {
       email: user.email,
       displayName: displayName,
@@ -71,9 +73,11 @@ export async function registerAction(
       createdAt: serverTimestamp(),
       lastLogin: serverTimestamp(),
     });
+    
   } catch (error: any) {
+    // Return a very specific, stable error message that doesn't cause a crash.
     return {
-        error: 'Registratie mislukt. De gebruikersauthenticatie is gelukt, maar het aanmaken van het gebruikersprofiel in de database is mislukt. Controleer uw Firestore-regels.'
+        error: 'Registratie mislukt: Kan gebruikersprofiel niet aanmaken in de database. Controleer uw Firestore-beveiligingsregels.'
     };
   }
 
@@ -100,13 +104,17 @@ export async function loginAction(
   const { email, password } = validatedFields.data;
 
   try {
-    await signInWithEmailAndPassword(
+    const userCredential = await signInWithEmailAndPassword(
       auth,
       email,
       password
     );
+    // Update last login timestamp
+     await updateDoc(doc(db, 'users', userCredential.user.uid), {
+      lastLogin: serverTimestamp(),
+    });
   } catch (error: any) {
-    return { error: 'Login mislukt. Controleer uw e-mailadres en wachtwoord.' };
+    return { error: 'Login mislukt. Controleer uw e-mailadres, wachtwoord en Firestore-regels.' };
   }
 
   redirect('/dashboard');
@@ -135,6 +143,7 @@ export async function forgotPasswordAction(
       success: `Als er een account bestaat voor ${email}, is er een herstellink verzonden.`,
     };
   } catch (error: any) {
+     // Return a generic success message even on error to prevent user enumeration
      return {
       success: `Als er een account bestaat voor ${email}, is er een herstellink verzonden.`,
     };
