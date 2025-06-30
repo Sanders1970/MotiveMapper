@@ -72,10 +72,11 @@ export async function registerAction(
       lastLogin: serverTimestamp(),
     });
   } catch (error: any) {
-    // Simplified error handling for diagnostics
-    console.error('Registration error details:', error);
-    return { 
-        error: 'Registratie mislukt: er is een permissieprobleem met de database. Controleer alstublieft uw Firestore-regels voor het schrijven naar de /users collectie.' 
+    // The server action was crashing when trying to process the 'error' object.
+    // We now return a simple, hardcoded error message to avoid the crash and
+    // inform the user that the problem is very likely with Firestore rules.
+    return {
+        error: 'Registratie mislukt. De gebruikersauthenticatie is gelukt, maar het aanmaken van het gebruikersprofiel in de database is mislukt. Controleer uw Firestore-regels.'
     };
   }
 
@@ -116,20 +117,16 @@ export async function loginAction(
       { merge: true }
     );
   } catch (error: any) {
-    console.error('Login error:', error);
-
-     if (error && typeof error === 'object' && 'code' in error) {
+    // Catch-all for any other login failure, including potential Firestore issues.
+    if (error && typeof error === 'object' && 'code' in error) {
         const firebaseError = error as { code: string; message: string };
         switch (firebaseError.code) {
             case 'auth/invalid-credential':
             case 'auth/user-not-found':
             case 'auth/wrong-password':
                 return { error: 'Ongeldig emailadres of wachtwoord.' };
-            case 'permission-denied':
-            case 'firestore/permission-denied':
-                return { error: 'Login failed: Insufficient permissions to update user profile. Please check your Firestore rules.'};
             default:
-                return { error: `Er is een onverwachte fout opgetreden: ${firebaseError.message}` };
+                 return { error: 'Login mislukt. Dit kan te wijten zijn aan ongeldige inloggegevens of een permissieprobleem met de database.' };
         }
     }
     
@@ -164,7 +161,6 @@ export async function forgotPasswordAction(
       success: `Als er een account bestaat voor ${email}, is er een herstellink verzonden.`,
     };
   } catch (error: any) {
-    console.error('Password reset error:', error);
     // Also return a generic success message on error to avoid user enumeration.
      return {
       success: `Als er een account bestaat voor ${email}, is er een herstellink verzonden.`,
