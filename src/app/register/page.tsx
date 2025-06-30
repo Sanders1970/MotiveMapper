@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormStatus } from 'react-dom';
@@ -75,9 +76,12 @@ export default function RegisterPage() {
                     title: 'Profiel aanmaken mislukt',
                     description: error.message,
                 });
-                // On failure, stop the spinner and allow the user to try again if needed.
-                setIsSubmitting(false);
+                // On failure, allow the user to try again if needed.
                 hasAttemptedProfileCreation.current = false;
+            } finally {
+                // This is the crucial fix: always stop the spinner
+                // after the database operation is complete.
+                setIsSubmitting(false);
             }
         };
         

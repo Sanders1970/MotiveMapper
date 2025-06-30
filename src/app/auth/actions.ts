@@ -79,6 +79,9 @@ export async function registerAction(
     }
     
   } catch (error: any) {
+    if (error.code === 'auth/email-already-in-use') {
+      return { error: 'Dit e-mailadres is al in gebruik.' };
+    }
     return { error: error.message || 'Registratie mislukt: er is een onbekende fout opgetreden.' };
   }
 }
@@ -110,6 +113,9 @@ export async function loginAction(
       password
     );
   } catch (error: any) {
+     if (error.code === 'auth/invalid-credential') {
+        return { error: 'Ongeldige inloggegevens. Controleer uw e-mailadres en wachtwoord.' };
+     }
      return { error: error.message || 'Inloggen mislukt: er is een onbekende fout opgetreden.' };
   }
 
