@@ -44,7 +44,6 @@ export async function registerAction(
   );
 
   if (!validatedFields.success) {
-    const fieldErrors = validatedFields.error.flatten().fieldErrors;
     return {
       error:
         fieldErrors.displayName?.[0] ||
@@ -131,13 +130,14 @@ export async function loginAction(
     );
     const user = userCredential.user;
 
-    await setDoc(
-      doc(db, 'users', user.uid),
-      {
-        lastLogin: serverTimestamp(),
-      },
-      { merge: true }
-    );
+    // Temporarily disabled to debug a potential Firestore rules issue.
+    // await setDoc(
+    //   doc(db, 'users', user.uid),
+    //   {
+    //     lastLogin: serverTimestamp(),
+    //   },
+    //   { merge: true }
+    // );
   } catch (error: any) {
     if (
       error.code === 'auth/invalid-credential' ||
