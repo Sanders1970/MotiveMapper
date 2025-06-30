@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { Rocket, Loader2 } from "lucide-react";
-import { useEffect, useActionState, useState } from 'react';
+import { useEffect, useActionState, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
@@ -39,6 +39,7 @@ export default function RegisterPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const hasAttemptedProfileCreation = useRef(false);
 
   useEffect(() => {
     if (state.error) {
@@ -47,13 +48,16 @@ export default function RegisterPage() {
         title: 'Registratie Mislukt',
         description: state.error,
       });
-      setIsSubmitting(false);
+      setIsSubmitting(false); // Stop spinner on server error
+      hasAttemptedProfileCreation.current = false; // Allow retry
     }
 
-    if (state.success && state.user && state.displayName) {
+    // Only proceed if registration was successful and we haven't tried creating a profile yet
+    if (state.success && state.user && !hasAttemptedProfileCreation.current) {
+        hasAttemptedProfileCreation.current = true; // Prevent this from running again
+        setIsSubmitting(true);
+
         const createUserProfile = async () => {
-            if (isSubmitting) return; // Prevent multiple submissions
-            setIsSubmitting(true);
             try {
                 await setDoc(doc(db, 'users', state.user!.uid), {
                     email: state.user!.email,
@@ -71,12 +75,15 @@ export default function RegisterPage() {
                     title: 'Profiel aanmaken mislukt',
                     description: error.message,
                 });
+                // On failure, stop the spinner and allow the user to try again if needed.
                 setIsSubmitting(false);
+                hasAttemptedProfileCreation.current = false;
             }
         };
+        
         createUserProfile();
     }
-  }, [state, router, toast, isSubmitting]);
+  }, [state, router, toast]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
