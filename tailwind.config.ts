@@ -67,6 +67,8 @@ export default {
         },
         'user-role': 'hsl(var(--user-role))',
         'admin-role': 'hsl(var(--admin-role))',
+        'hoofdadmin-role': 'hsl(var(--hoofdadmin-role))',
+        'subsuperadmin-role': 'hsl(var(--subsuperadmin-role))',
         'superadmin-role': 'hsl(var(--superadmin-role))',
       },
       borderRadius: {

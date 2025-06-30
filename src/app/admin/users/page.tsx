@@ -94,6 +94,7 @@ export default function AdminUsersPage() {
                                         <TableHead>Display Name</TableHead>
                                         <TableHead>Email</TableHead>
                                         <TableHead>Role</TableHead>
+                                        <TableHead>Managed By</TableHead>
                                         <TableHead>Last Login</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
@@ -106,6 +107,7 @@ export default function AdminUsersPage() {
                                             <TableCell>
                                                 <Badge className={roleVariantMap[user.role]}>{user.role}</Badge>
                                             </TableCell>
+                                            <TableCell>{user.parentDisplayName}</TableCell>
                                             <TableCell>
                                                 {user.lastLogin ? formatDistanceToNow(user.lastLogin.toDate(), { addSuffix: true }) : 'Never'}
                                             </TableCell>

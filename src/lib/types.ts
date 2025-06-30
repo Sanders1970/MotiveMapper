@@ -16,4 +16,5 @@ export interface User {
   lastLogin: Timestamp;
   selectedColors?: string[];
   parentId?: string | null;
+  parentDisplayName?: string;
 }

@@ -77,6 +77,10 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
                         <p><Badge>{user.role}</Badge></p>
                     </div>
                      <div>
+                        <Label>Managed By</Label>
+                        <p>{user.parentDisplayName}</p>
+                    </div>
+                     <div>
                         <Label>Last Login</Label>
                         <p>{user.lastLogin ? format(user.lastLogin.toDate(), 'PPP p') : 'Never'}</p>
                     </div>

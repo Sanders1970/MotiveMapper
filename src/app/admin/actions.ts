@@ -17,39 +17,61 @@ async function getAllSubordinates(userId: string): Promise<User[]> {
   const q = query(usersCollection, where('parentId', '==', userId));
   const querySnapshot = await getDocs(q);
 
-  let users: User[] = querySnapshot.docs.map(
+  const directChildren: User[] = querySnapshot.docs.map(
     (doc) => ({ uid: doc.id, ...doc.data() } as User)
   );
 
-  for (const user of users) {
-    if (['admin', 'hoofdadmin', 'subsuperadmin'].includes(user.role)) {
-      const subordinates = await getAllSubordinates(user.uid);
-      users = users.concat(subordinates);
+  let allDescendants: User[] = [...directChildren];
+
+  for (const child of directChildren) {
+    if (['admin', 'hoofdadmin', 'subsuperadmin'].includes(child.role)) {
+      const subordinates = await getAllSubordinates(child.uid);
+      allDescendants = allDescendants.concat(subordinates);
     }
   }
 
-  return users;
+  return allDescendants;
 }
+
 
 export async function getUsers(currentUser: User): Promise<User[]> {
   try {
     const usersCollection = collection(db, 'users');
+    let users: User[] = [];
 
     switch (currentUser.role) {
       case 'superadmin': {
         const allUsersSnapshot = await getDocs(usersCollection);
-        return allUsersSnapshot.docs.map(
+        users = allUsersSnapshot.docs.map(
           (doc) => ({ uid: doc.id, ...doc.data() } as User)
         );
+        break;
       }
       case 'subsuperadmin':
       case 'hoofdadmin':
       case 'admin': {
-        return await getAllSubordinates(currentUser.uid);
+        users = await getAllSubordinates(currentUser.uid);
+        break;
       }
       default:
         return [];
     }
+    
+    // Create a map of all users for efficient parent name lookup
+    const allUsersSnapshot = await getDocs(collection(db, 'users'));
+    const userMap = new Map<string, string>();
+    allUsersSnapshot.forEach(doc => {
+        if (doc.data().displayName) {
+          userMap.set(doc.id, doc.data().displayName);
+        }
+    });
+
+    // Augment users with their parent's display name
+    return users.map(user => ({
+        ...user,
+        parentDisplayName: user.parentId ? userMap.get(user.parentId) || 'Unknown' : 'None'
+    }));
+
   } catch (error) {
     console.error('Error fetching users: ', error);
     return [];
@@ -65,7 +87,20 @@ export async function getUser(uid: string): Promise<User | null> {
       return null;
     }
 
-    return { uid: userSnap.id, ...userSnap.data() } as User;
+    const user = { uid: userSnap.id, ...userSnap.data() } as User;
+
+    if (user.parentId) {
+      const parentSnap = await getDoc(doc(db, 'users', user.parentId));
+      if (parentSnap.exists() && parentSnap.data().displayName) {
+        user.parentDisplayName = parentSnap.data().displayName;
+      } else {
+        user.parentDisplayName = 'Unknown';
+      }
+    } else {
+      user.parentDisplayName = 'None';
+    }
+
+    return user;
   } catch (error) {
     console.error('Error fetching user:', error);
     return null;
