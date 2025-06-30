@@ -18,7 +18,8 @@ import { Home, Settings, LogOut, Rocket, Shield, Loader2, Database } from "lucid
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { auth } from "@/lib/firebase";
-import { useRouter, redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
+import React, { useEffect } from 'react';
 
 const adminRoles = ['admin', 'hoofdadmin', 'subsuperadmin', 'superadmin'];
 
@@ -35,16 +36,18 @@ export default function DashboardLayout({
     router.push('/login');
   };
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [loading, user, router]);
+
+  if (loading || !user) {
      return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
-  }
-
-  if (!user) {
-    redirect('/login');
   }
 
   const canAccessAdmin = adminRoles.includes(user.role);
