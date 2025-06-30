@@ -72,33 +72,11 @@ export async function registerAction(
       lastLogin: serverTimestamp(),
     });
   } catch (error: any) {
-    console.error('Registration error:', error);
-
-    let errorMessage = 'An unexpected error occurred during registration.';
-    if (error && typeof error === 'object' && 'code' in error) {
-        const firebaseError = error as { code: string; message: string };
-        switch (firebaseError.code) {
-            case 'auth/email-already-in-use':
-              errorMessage = 'This email address is already registered.';
-              break;
-            case 'auth/weak-password':
-              errorMessage = 'Password is too weak. Must be at least 6 characters long.';
-              break;
-            case 'auth/invalid-email':
-              errorMessage = 'The provided email address is invalid.';
-              break;
-            case 'permission-denied':
-            case 'firestore/permission-denied':
-              errorMessage = 'Registration failed: Insufficient permissions to create user profile. Please check your Firestore rules.';
-              break;
-            default:
-              errorMessage = `An error occurred: ${firebaseError.message} (Code: ${firebaseError.code}). Please try again.`;
-              break;
-        }
-    } else if (error instanceof Error) {
-        errorMessage = error.message;
-    }
-    return { error: errorMessage };
+    // Simplified error handling for diagnostics
+    console.error('Registration error details:', error);
+    return { 
+        error: 'Registratie mislukt: er is een permissieprobleem met de database. Controleer alstublieft uw Firestore-regels voor het schrijven naar de /users collectie.' 
+    };
   }
 
   redirect('/dashboard');
