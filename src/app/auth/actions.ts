@@ -117,22 +117,10 @@ export async function loginAction(
       { merge: true }
     );
   } catch (error: any) {
-    // Catch-all for any other login failure, including potential Firestore issues.
-    if (error && typeof error === 'object' && 'code' in error) {
-        const firebaseError = error as { code: string; message: string };
-        switch (firebaseError.code) {
-            case 'auth/invalid-credential':
-            case 'auth/user-not-found':
-            case 'auth/wrong-password':
-                return { error: 'Ongeldig emailadres of wachtwoord.' };
-            default:
-                 return { error: 'Login mislukt. Dit kan te wijten zijn aan ongeldige inloggegevens of een permissieprobleem met de database.' };
-        }
-    }
-    
-    return {
-      error: 'Er is een onverwachte fout opgetreden tijdens het inloggen.',
-    };
+    // Drastically simplified catch-all to prevent server crashes.
+    // This will help reveal the true underlying error, which is likely
+    // related to Firestore permissions or invalid credentials.
+    return { error: 'Login mislukt. Dit kan te wijten zijn aan ongeldige inloggegevens of een permissieprobleem met de database.' };
   }
 
   redirect('/dashboard');
