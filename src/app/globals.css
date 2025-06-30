@@ -41,6 +41,9 @@ body {
     --sidebar-accent-foreground: 222.2 47.4% 11.2%;
     --sidebar-border: 214.3 31.8% 91.4%;
     --sidebar-ring: 210 14.3% 56.5%;
+    --user-role: 125 10% 42%;
+    --admin-role: 188 31% 41%;
+    --superadmin-role: 55 63% 47%;
   }
   .dark {
     --background: 222.2 84% 4.9%;
@@ -75,6 +78,9 @@ body {
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217.2 32.6% 17.5%;
     --sidebar-ring: 210 40% 98%;
+    --user-role: 125 10% 42%;
+    --admin-role: 188 31% 41%;
+    --superadmin-role: 55 63% 47%;
   }
 }
 

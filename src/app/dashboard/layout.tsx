@@ -1,3 +1,5 @@
+'use client';
+
 import {
   SidebarProvider,
   Sidebar,
@@ -12,21 +14,38 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Home, Users, Settings, LogOut, Rocket } from "lucide-react";
+import { Home, Settings, LogOut, Rocket, Shield, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/hooks/use-auth";
+import { auth } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Mock user data. In a real app, this would come from a session.
-  const user = {
-    name: "Alex Doe",
-    email: "alex.doe@example.com",
-    avatar: "https://placehold.co/100x100.png",
-    role: "user", // Can be 'admin', 'super admin'
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await auth.signOut();
+    router.push('/login');
   };
+
+  if (loading) {
+     return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
+
 
   return (
     <SidebarProvider>
@@ -51,14 +70,16 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="#">
-                  <Users />
-                  <span>Team</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {(user.role === 'admin' || user.role === 'superadmin') && (
+               <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link href="/admin/users">
+                    <Shield />
+                    <span>Admin</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="#">
@@ -72,19 +93,17 @@ export default function DashboardLayout({
         <SidebarFooter>
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+              <AvatarImage src={"https://placehold.co/100x100.png"} alt={user.displayName || 'User'} />
+              <AvatarFallback>{user.displayName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
             </Avatar>
             <div className="flex-1 overflow-hidden">
-              <p className="truncate font-semibold">{user.name}</p>
+              <p className="truncate font-semibold">{user.displayName}</p>
               <p className="truncate text-sm text-muted-foreground">
                 {user.email}
               </p>
             </div>
-            <SidebarMenuButton asChild variant="ghost" size="icon">
-              <Link href="/login">
+            <SidebarMenuButton variant="ghost" size="icon" onClick={handleLogout}>
                 <LogOut />
-              </Link>
             </SidebarMenuButton>
           </div>
         </SidebarFooter>

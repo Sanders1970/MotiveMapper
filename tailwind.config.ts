@@ -65,6 +65,9 @@ export default {
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))',
         },
+        'user-role': 'hsl(var(--user-role))',
+        'admin-role': 'hsl(var(--admin-role))',
+        'superadmin-role': 'hsl(var(--superadmin-role))',
       },
       borderRadius: {
         lg: 'var(--radius)',
