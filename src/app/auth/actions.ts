@@ -72,7 +72,7 @@ export async function registerAction(
       parentId: null,
     });
     
-  } catch (error: any) {
+  } catch (error) {
     // This is a failsafe. If we land here, it means the Firestore rules are incorrect.
     // We do NOT inspect the 'error' object itself, as this was causing the server to crash.
     return {
@@ -111,7 +111,7 @@ export async function loginAction(
     await updateDoc(doc(db, 'users', userCredential.user.uid), {
       lastLogin: serverTimestamp(),
     });
-  } catch (error: any) {
+  } catch (error) {
      // This is a failsafe. If we land here, it means the user doesn't exist or password is wrong.
      // The complex error object from Firebase was causing crashes, so we return a generic message.
      return { error: 'Inloggen mislukt. Controleer uw e-mailadres en wachtwoord.' };
@@ -142,7 +142,7 @@ export async function forgotPasswordAction(
     return {
       success: `Als er een account bestaat voor ${email}, is er een herstellink verzonden.`,
     };
-  } catch (error: any) {
+  } catch (error) {
      // Also return a generic success message on error to avoid user enumeration.
      // This prevents disclosing whether a user is registered or not.
      return {
