@@ -44,6 +44,7 @@ export async function registerAction(
   );
 
   if (!validatedFields.success) {
+    const fieldErrors = validatedFields.error.flatten().fieldErrors;
     return {
       error:
         fieldErrors.displayName?.[0] ||
@@ -130,14 +131,13 @@ export async function loginAction(
     );
     const user = userCredential.user;
 
-    // Temporarily disabled to debug a potential Firestore rules issue.
-    // await setDoc(
-    //   doc(db, 'users', user.uid),
-    //   {
-    //     lastLogin: serverTimestamp(),
-    //   },
-    //   { merge: true }
-    // );
+    await setDoc(
+      doc(db, 'users', user.uid),
+      {
+        lastLogin: serverTimestamp(),
+      },
+      { merge: true }
+    );
   } catch (error: any) {
     if (
       error.code === 'auth/invalid-credential' ||
@@ -145,6 +145,12 @@ export async function loginAction(
       error.code === 'auth/wrong-password'
     ) {
       return { error: 'Ongeldig emailadres of wachtwoord.' };
+    }
+     if (
+      error.code === 'permission-denied' ||
+      error.code === 'firestore/permission-denied'
+    ) {
+        return { error: 'Login failed: Insufficient permissions to update user profile. Please check your Firestore rules.'};
     }
     console.error('Login error:', error);
     return {
