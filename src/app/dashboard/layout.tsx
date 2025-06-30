@@ -18,7 +18,7 @@ import { Home, Settings, LogOut, Rocket, Shield, Loader2, Database } from "lucid
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { auth } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
+import { useRouter, redirect } from "next/navigation";
 
 const adminRoles = ['admin', 'hoofdadmin', 'subsuperadmin', 'superadmin'];
 
@@ -44,8 +44,7 @@ export default function DashboardLayout({
   }
 
   if (!user) {
-    router.push('/login');
-    return null;
+    redirect('/login');
   }
 
   const canAccessAdmin = adminRoles.includes(user.role);
