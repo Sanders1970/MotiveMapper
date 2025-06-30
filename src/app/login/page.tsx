@@ -1,47 +1,57 @@
 'use client';
 
-import { useFormStatus } from 'react-dom';
-import { loginAction, type AuthState } from '@/app/auth/actions';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { auth } from '@/lib/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { Rocket, Loader2 } from "lucide-react";
-import { useEffect, useActionState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
-const initialState: AuthState = {};
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending} className="w-full">
-      {pending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Inloggen...
-        </>
-      ) : (
-        "Inloggen"
-      )}
-    </Button>
-  );
-}
-
 export default function LoginPage() {
-  const [state, formAction] = useActionState(loginAction, initialState);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (state.error) {
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    if (!email || !password) {
+        toast({
+            variant: 'destructive',
+            title: 'Login Mislukt',
+            description: 'E-mail en wachtwoord zijn verplicht.',
+        });
+        setLoading(false);
+        return;
+    }
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // The onAuthStateChanged listener in AuthProvider will handle everything else.
+      // We just need to navigate to the dashboard.
+      router.push('/dashboard');
+    } catch (error: any) {
+      console.error("Login Failed:", error);
+      let errorMessage = 'Inloggen mislukt. Probeer het opnieuw.';
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        errorMessage = 'Ongeldige inloggegevens. Controleer uw e-mailadres en wachtwoord.';
+      }
       toast({
         variant: 'destructive',
         title: 'Login Mislukt',
-        description: state.error,
+        description: errorMessage,
       });
+      setLoading(false);
     }
-  }, [state, toast]);
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -51,19 +61,45 @@ export default function LoginPage() {
           <CardTitle className="text-2xl font-headline mt-4">Welkom bij MotiveMapper</CardTitle>
           <CardDescription>Log in op je account om verder te gaan</CardDescription>
         </CardHeader>
-        <form action={formAction}>
+        <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" placeholder="m@voorbeeld.nl" required />
+              <Input 
+                id="email" 
+                name="email" 
+                type="email" 
+                placeholder="m@voorbeeld.nl" 
+                required 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Wachtwoord</Label>
-              <Input id="password" name="password" type="password" required />
+              <Input 
+                id="password" 
+                name="password" 
+                type="password" 
+                required 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+              />
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <SubmitButton />
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Inloggen...
+                </>
+              ) : (
+                "Inloggen"
+              )}
+            </Button>
              <div className="text-center text-sm text-muted-foreground">
                 <p>
                     <Link href="/forgot-password" className="underline text-secondary hover:text-secondary/80">

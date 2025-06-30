@@ -4,7 +4,6 @@ import { auth } from '@/lib/firebase';
 import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
-  signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -16,11 +15,6 @@ const registerSchema = z.object({
   password: z
     .string()
     .min(6, { message: 'Wachtwoord moet minimaal 6 karakters lang zijn.' }),
-});
-
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1, { message: 'Wachtwoord is verplicht.' }),
 });
 
 const forgotPasswordSchema = z.object({
@@ -82,43 +76,6 @@ export async function registerAction(
     console.error("Register Action Error:", error);
     return { error: 'Registratie mislukt: ' + error.message };
   }
-}
-
-export async function loginAction(
-  prevState: AuthState,
-  formData: FormData
-): Promise<AuthState> {
-  const validatedFields = loginSchema.safeParse(
-    Object.fromEntries(formData.entries())
-  );
-
-  if (!validatedFields.success) {
-    const fieldErrors = validatedFields.error.flatten().fieldErrors;
-    return {
-      error:
-        fieldErrors.email?.[0] ||
-        fieldErrors.password?.[0],
-    };
-  }
-
-  const { email, password } = validatedFields.data;
-
-  try {
-    // We remove the updateDoc for lastLogin to avoid server-side auth issues.
-    await signInWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
-  } catch (error: any) {
-     if (error.code === 'auth/invalid-credential') {
-        return { error: 'Ongeldige inloggegevens. Controleer uw e-mailadres en wachtwoord.' };
-     }
-     console.error("Login Action Error:", error);
-     return { error: 'Inloggen mislukt: ' + error.message };
-  }
-
-  redirect('/dashboard');
 }
 
 export async function forgotPasswordAction(
