@@ -8,7 +8,6 @@ import {
   getDoc,
   serverTimestamp,
   updateDoc,
-  setDoc,
 } from 'firebase/firestore';
 import { createContext, useEffect, useState } from 'react';
 
@@ -32,11 +31,14 @@ async function getUserProfile(firebaseUser: FirebaseUser): Promise<User | null> 
     if (docSnap.exists()) {
       console.log('[AuthProvider] Stap 3: Document gevonden in Firestore.');
       const data = docSnap.data();
-
+      
       // Update last login timestamp in the background
-      updateDoc(userDocRef, { lastLogin: serverTimestamp() }).catch(err => {
-        console.warn('[AuthProvider] Waarschuwing: "lastLogin" tijdstip kon niet worden bijgewerkt.', err.message);
-      });
+      try {
+        await updateDoc(userDocRef, { lastLogin: serverTimestamp() });
+        console.log('[AuthProvider] Stap 3.5: "lastLogin" tijdstip succesvol bijgewerkt.');
+      } catch (updateError: any) {
+         console.warn('[AuthProvider] Waarschuwing: "lastLogin" tijdstip kon niet worden bijgewerkt.', updateError.message);
+      }
 
       const userProfile: User = {
         uid: firebaseUser.uid,
@@ -49,13 +51,14 @@ async function getUserProfile(firebaseUser: FirebaseUser): Promise<User | null> 
       };
       console.log('[AuthProvider] Stap 4: Gebruikersprofiel succesvol samengesteld:', userProfile);
       return userProfile;
+
     } else {
       console.error(`[AuthProvider] FOUT: Geen document gevonden in Firestore voor UID: ${firebaseUser.uid}. De gebruiker bestaat in Authentication, maar heeft geen profiel in de database.`);
       return null;
     }
   } catch (error: any) {
     if (error.code === 'unavailable' || (error.message && error.message.includes('offline'))) {
-       console.error('[AuthProvider] KRITIEKE FOUT: Kan geen verbinding maken met Firestore. De client is "offline". Controleer of de Firestore Database is aangemaakt en geactiveerd in uw Firebase-project.', error);
+       console.error('[AuthProvider] KRITIEKE FOUT: Kan geen verbinding maken met Firestore. De client is "offline". Mogelijke oorzaken: (1) Firestore Database is niet aangemaakt/actief. (2) Security Rules blokkeren toegang. (3) Firebase configuratie is incorrect.', error);
     } else {
       console.error('[AuthProvider] Kritieke fout bij ophalen profiel:', error);
     }
@@ -70,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     console.log('[AuthProvider] Initialisatie: Auth state listener wordt nu ingesteld.');
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setLoading(true); // Begin met laden zodra de status verandert
+      setLoading(true);
       if (firebaseUser) {
         console.log('[AuthProvider] Stap 1: Gebruiker is ingelogd bij Firebase Authentication. UID:', firebaseUser.uid);
         const userProfile = await getUserProfile(firebaseUser);
