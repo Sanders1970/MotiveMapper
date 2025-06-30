@@ -23,47 +23,41 @@ export const AuthContext = createContext<AuthContextType>({
 
 async function getUserProfile(firebaseUser: FirebaseUser): Promise<User | null> {
   const userDocRef = doc(db, 'users', firebaseUser.uid);
-  console.log(`[AuthProvider] Stap 2: Firestore document opvragen voor UID: ${firebaseUser.uid}`);
   
   try {
     const docSnap = await getDoc(userDocRef);
 
     if (docSnap.exists()) {
-      console.log('[AuthProvider] Stap 3: Document gevonden in Firestore.');
       const data = docSnap.data();
       
       try {
         await updateDoc(userDocRef, { lastLogin: serverTimestamp() });
-        console.log('[AuthProvider] Stap 3.5: "lastLogin" tijdstip succesvol bijgewerkt.');
       } catch (updateError: any) {
-         console.warn('[AuthProvider] Waarschuwing: "lastLogin" tijdstip kon niet worden bijgewerkt.', updateError.message);
+         console.warn('[AuthProvider] Warning: Failed to update lastLogin timestamp.', updateError.message);
       }
 
       const userProfile: User = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        displayName: data.displayName || 'Gebruiker',
+        displayName: data.displayName || 'User',
         role: data.role || 'user',
         createdAt: data.createdAt || null,
         lastLogin: data.lastLogin || null,
         parentId: data.parentId || null,
       };
-      console.log('[AuthProvider] Stap 4: Gebruikersprofiel succesvol samengesteld:', userProfile);
       return userProfile;
 
     } else {
-      console.error(`[AuthProvider] FOUT: Geen document gevonden in Firestore voor UID: ${firebaseUser.uid}. De gebruiker bestaat in Authentication, maar heeft geen profiel in de database.`);
+      console.error(`[AuthProvider] ERROR: No document found in Firestore for UID: ${firebaseUser.uid}. The user exists in Authentication but has no database profile.`);
       return null;
     }
   } catch (error: any) {
     if (error.code === 'unavailable' || (error.message && error.message.includes('offline'))) {
-       console.error(`[AuthProvider] KRITIEKE FOUT: Kan geen verbinding maken met Firestore. De client is "offline". 
-       Dit betekent waarschijnlijk dat de "Cloud Firestore API" niet is ingeschakeld voor project '${firebaseConfig.projectId}'.
-       Controleer in de Google Cloud Console of u bent ingelogd met het juiste account dat toegang heeft tot dit project, 
-       en controleer of de API is ingeschakeld en of er een factureringsaccount (Billing Account) aan het project is gekoppeld.
+       console.error(`[AuthProvider] CRITICAL ERROR: Could not connect to Firestore. The client is "offline". 
+       This likely means the "Cloud Firestore API" is not enabled for project '${firebaseConfig.projectId}', the service account for App Hosting is missing the 'Cloud Datastore User' IAM role, or a billing account is not linked to the project.
        `, error);
     } else {
-      console.error('[AuthProvider] Kritieke fout bij ophalen profiel:', error);
+      console.error('[AuthProvider] Critical error fetching profile:', error);
     }
     return null;
   }
@@ -74,24 +68,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('[AuthProvider] Initialisatie: Auth state listener wordt nu ingesteld.');
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
       if (firebaseUser) {
-        console.log('[AuthProvider] Stap 1: Gebruiker is ingelogd bij Firebase Authentication. UID:', firebaseUser.uid);
         const userProfile = await getUserProfile(firebaseUser);
         setUser(userProfile);
-        console.log('[AuthProvider] Stap 5: Gebruikersstatus is bijgewerkt in de app.');
       } else {
-        console.log('[AuthProvider] Gebruiker is uitgelogd of niet gevonden.');
         setUser(null);
       }
       setLoading(false);
-      console.log('[AuthProvider] Klaar: Laden is voltooid.');
     });
 
     return () => {
-      console.log('[AuthProvider] Listener wordt opgeruimd.');
       unsubscribe();
     };
   }, []);
