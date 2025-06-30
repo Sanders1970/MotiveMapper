@@ -1,4 +1,3 @@
-
 'use server';
 
 import { auth } from '@/lib/firebase';
@@ -10,10 +9,9 @@ import {
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
+// Registration no longer requires a display name from the user.
+// It will be sourced from the invitation.
 const registerSchema = z.object({
-  displayName: z
-    .string()
-    .min(3, { message: 'Weergavenaam moet minimaal 3 karakters lang zijn.' }),
   email: z.string().email({ message: 'Ongeldig emailadres.' }),
   password: z
     .string()
@@ -52,13 +50,12 @@ export async function registerAction(
     const fieldErrors = validatedFields.error.flatten().fieldErrors;
     return {
       error:
-        fieldErrors.displayName?.[0] ||
         fieldErrors.email?.[0] ||
         fieldErrors.password?.[0],
     };
   }
 
-  const { email, password, displayName } = validatedFields.data;
+  const { email, password } = validatedFields.data;
 
   try {
     const userCredential = await createUserWithEmailAndPassword(
@@ -68,21 +65,22 @@ export async function registerAction(
     );
     
     // Return user info to the client to create the profile.
-    // This avoids server-side auth context issues with the Firebase client SDK.
     return {
         success: 'Account created! Finalizing profile...',
         user: {
             uid: userCredential.user.uid,
             email: userCredential.user.email,
         },
-        displayName: displayName,
+        // DisplayName is no longer relevant here, it will be set from invitation data.
+        displayName: '',
     }
     
   } catch (error: any) {
     if (error.code === 'auth/email-already-in-use') {
       return { error: 'Dit e-mailadres is al in gebruik.' };
     }
-    return { error: error.message || 'Registratie mislukt: er is een onbekende fout opgetreden.' };
+    console.error("Register Action Error:", error);
+    return { error: 'Registratie mislukt: ' + error.message };
   }
 }
 
@@ -116,7 +114,8 @@ export async function loginAction(
      if (error.code === 'auth/invalid-credential') {
         return { error: 'Ongeldige inloggegevens. Controleer uw e-mailadres en wachtwoord.' };
      }
-     return { error: error.message || 'Inloggen mislukt: er is een onbekende fout opgetreden.' };
+     console.error("Login Action Error:", error);
+     return { error: 'Inloggen mislukt: ' + error.message };
   }
 
   redirect('/dashboard');

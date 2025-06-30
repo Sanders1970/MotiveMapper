@@ -65,15 +65,9 @@ export default function LoginPage() {
           <CardFooter className="flex flex-col gap-4">
             <SubmitButton />
              <div className="text-center text-sm text-muted-foreground">
-                <p className="mb-2">
+                <p>
                     <Link href="/forgot-password" className="underline text-secondary hover:text-secondary/80">
                         Wachtwoord vergeten?
-                    </Link>
-                </p>
-                <p>
-                    Nog geen account?{" "}
-                    <Link href="/register" className="underline text-secondary hover:text-secondary/80">
-                        Registreren
                     </Link>
                 </p>
             </div>

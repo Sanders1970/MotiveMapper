@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Home, Settings, LogOut, Rocket, Shield, Loader2, Database } from "lucide-react";
+import { Home, Settings, LogOut, Rocket, Shield, Loader2, Database, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { auth } from "@/lib/firebase";
@@ -76,6 +76,16 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+             {canAccessAdmin && (
+               <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link href="/admin/users/invite">
+                    <UserPlus />
+                    <span>Invite User</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
             {canAccessAdmin && (
                <SidebarMenuItem>
                 <SidebarMenuButton asChild>

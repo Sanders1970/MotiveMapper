@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFormStatus } from 'react-dom';
@@ -13,7 +12,7 @@ import { useEffect, useActionState, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 
 
 const initialState: AuthState = {};
@@ -26,7 +25,7 @@ function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
       {disabled ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          {isSubmitting ? 'Profiel aanmaken...' : 'Registreren...'}
+          {isSubmitting ? 'Profiel valideren...' : 'Registreren...'}
         </>
       ) : (
         "Registreren"
@@ -49,38 +48,72 @@ export default function RegisterPage() {
         title: 'Registratie Mislukt',
         description: state.error,
       });
-      setIsSubmitting(false); // Stop spinner on server error
-      hasAttemptedProfileCreation.current = false; // Allow retry
+      setIsSubmitting(false);
+      hasAttemptedProfileCreation.current = false;
     }
 
-    // Only proceed if registration was successful and we haven't tried creating a profile yet
     if (state.success && state.user && !hasAttemptedProfileCreation.current) {
-        hasAttemptedProfileCreation.current = true; // Prevent this from running again
+        hasAttemptedProfileCreation.current = true;
         setIsSubmitting(true);
 
         const createUserProfile = async () => {
+            const user = state.user!;
+            const userEmail = user.email;
+
+            if (!userEmail) {
+                toast({ variant: 'destructive', title: 'Registratie Mislukt', description: 'Gebruikers e-mail is niet beschikbaar.' });
+                setIsSubmitting(false);
+                // In een echte app zou je hier de aangemaakte auth user willen verwijderen.
+                return;
+            }
+
             try {
-                await setDoc(doc(db, 'users', state.user!.uid), {
-                    email: state.user!.email,
-                    displayName: state.displayName,
-                    role: 'user', 
+                // 1. Check for a valid invitation
+                const invitationsRef = collection(db, 'invitations');
+                const q = query(invitationsRef, where('email', '==', userEmail));
+                const invitationSnapshot = await getDocs(q);
+
+                if (invitationSnapshot.empty) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Registratie niet toegestaan',
+                        description: 'U moet zijn uitgenodigd door een beheerder om te kunnen registreren.',
+                    });
+                    setIsSubmitting(false);
+                    return;
+                }
+
+                // 2. Use invitation data to create user profile and delete invitation
+                const invitationDoc = invitationSnapshot.docs[0];
+                const invitationData = invitationDoc.data();
+                
+                const batch = writeBatch(db);
+
+                const userDocRef = doc(db, 'users', user.uid);
+                batch.set(userDocRef, {
+                    email: user.email,
+                    displayName: invitationData.displayName,
+                    role: invitationData.role, 
+                    parentId: invitationData.parentId,
                     createdAt: serverTimestamp(),
                     lastLogin: serverTimestamp(),
-                    parentId: null,
                 });
+
+                batch.delete(invitationDoc.ref);
+                
+                await batch.commit();
+
                 toast({ title: "Succes!", description: "Profiel aangemaakt. U wordt doorgestuurd."});
                 router.push('/dashboard');
+
             } catch(error: any) {
                 toast({
                     variant: 'destructive',
                     title: 'Profiel aanmaken mislukt',
                     description: error.message,
                 });
-                // On failure, allow the user to try again if needed.
-                hasAttemptedProfileCreation.current = false;
+                 hasAttemptedProfileCreation.current = false;
             } finally {
-                // This is the crucial fix: always stop the spinner
-                // after the database operation is complete.
                 setIsSubmitting(false);
             }
         };
@@ -95,14 +128,10 @@ export default function RegisterPage() {
         <CardHeader className="text-center">
            <Rocket className="mx-auto h-12 w-12 text-primary" />
           <CardTitle className="text-2xl font-headline mt-4">Account aanmaken</CardTitle>
-          <CardDescription>Vul je gegevens in om een account aan te maken</CardDescription>
+          <CardDescription>Vul je gegevens in om je uitnodiging te voltooien.</CardDescription>
         </CardHeader>
         <form action={formAction}>
           <CardContent className="space-y-4">
-             <div className="space-y-2">
-              <Label htmlFor="displayName">Weergavenaam</Label>
-              <Input id="displayName" name="displayName" type="text" placeholder="Sander" required disabled={isSubmitting} />
-            </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" name="email" type="email" placeholder="m@voorbeeld.nl" required disabled={isSubmitting} />

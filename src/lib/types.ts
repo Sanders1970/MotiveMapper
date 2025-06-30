@@ -18,3 +18,11 @@ export interface User {
   parentId?: string | null;
   parentDisplayName?: string;
 }
+
+export interface Invitation {
+    email: string;
+    displayName: string;
+    role: Role;
+    parentId: string;
+    createdAt: Timestamp;
+}
