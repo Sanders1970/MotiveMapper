@@ -62,21 +62,19 @@ export async function registerAction(
       email,
       password
     );
-    // TEMPORARILY DISABLED a user profile creation in the database to isolate the server crash.
-    // This is a diagnostic step.
-    /*
+    
     await setDoc(doc(db, 'users', userCredential.user.uid), {
       email: userCredential.user.email,
       displayName: displayName,
       role: 'user', 
       createdAt: serverTimestamp(),
       lastLogin: serverTimestamp(),
+      parentId: null,
     });
-    */
     
   } catch (error: any) {
     return {
-        error: 'Registratie mislukt: Kan gebruiker niet aanmaken in Authenticatie.'
+        error: 'Registratie mislukt: Kon gebruikersprofiel niet aanmaken in de database. Controleer de Firestore regels.'
     };
   }
 
@@ -108,12 +106,9 @@ export async function loginAction(
       email,
       password
     );
-    // TEMPORARILY DISABLED lastLogin update to isolate the server crash.
-    /*
     await updateDoc(doc(db, 'users', userCredential.user.uid), {
       lastLogin: serverTimestamp(),
     });
-    */
   } catch (error: any) {
     return { error: 'Login mislukt. Controleer uw e-mailadres en wachtwoord.' };
   }

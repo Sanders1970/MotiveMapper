@@ -23,32 +23,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // User is authenticated, now get their data from Firestore.
+        // Base user object is available immediately. This prevents redirect loops.
+        setUser({ 
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            role: 'user' // Assume 'user' role until Firestore data loads
+        } as User);
+
+        // Now, listen for the full user profile from Firestore.
         const userDocRef = doc(db, 'users', firebaseUser.uid);
-        
         const unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
-            // We have the user data from Firestore.
-            const userData = docSnap.data();
-            setUser({
-              uid: firebaseUser.uid,
-              // Ensure role defaults to 'user' if not present
-              role: 'user', 
-              ...userData,
-            } as User);
-          } else {
-            // This can happen if the doc creation failed after registration.
-            // Treat as not fully logged in.
-            setUser(null);
+            // Firestore doc exists, merge with existing data to get the full profile.
+            setUser(prevUser => ({
+                ...prevUser!, // We know prevUser is not null here
+                ...docSnap.data(),
+            }));
           }
-          setLoading(false); // Stop loading ONLY after we have a firestore result
+          // If doc doesn't exist, we stick with the base user object.
+          // The registration process is responsible for creating it.
+          setLoading(false);
         }, (error) => {
           console.error("Firestore onSnapshot error:", error);
-          setUser(null);
+          // On error, we still have the base user, but stop loading.
           setLoading(false);
         });
 
-        return () => unsubscribeSnapshot(); // Cleanup snapshot listener
+        return () => unsubscribeSnapshot();
       } else {
         // User is not logged in.
         setUser(null);
@@ -56,7 +58,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // Cleanup auth subscription on component unmount.
     return () => unsubscribe();
   }, []);
 
