@@ -1,6 +1,6 @@
 'use client';
 
-import { auth, db, firebaseConfig } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import type { User } from '@/lib/types';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import {
@@ -30,11 +30,10 @@ async function getUserProfile(firebaseUser: FirebaseUser): Promise<User | null> 
     if (docSnap.exists()) {
       const data = docSnap.data();
       
-      try {
-        await updateDoc(userDocRef, { lastLogin: serverTimestamp() });
-      } catch (updateError: any) {
-         console.warn('[AuthProvider] Warning: Failed to update lastLogin timestamp.', updateError.message);
-      }
+      // Non-blocking attempt to update last login
+      updateDoc(userDocRef, { lastLogin: serverTimestamp() }).catch(err => {
+         console.warn('[AuthProvider] Warning: Failed to update lastLogin timestamp.', err.message);
+      });
 
       const userProfile: User = {
         uid: firebaseUser.uid,
@@ -52,13 +51,7 @@ async function getUserProfile(firebaseUser: FirebaseUser): Promise<User | null> 
       return null;
     }
   } catch (error: any) {
-    if (error.code === 'unavailable' || (error.message && error.message.includes('offline'))) {
-       console.error(`[AuthProvider] CRITICAL ERROR: Could not connect to Firestore. The client is "offline". 
-       This likely means the "Cloud Firestore API" is not enabled for project '${firebaseConfig.projectId}', the service account for App Hosting is missing the 'Cloud Datastore User' IAM role, or a billing account is not linked to the project.
-       `, error);
-    } else {
-      console.error('[AuthProvider] Critical error fetching profile:', error);
-    }
+    console.error('[AuthProvider] Critical error fetching user profile:', error);
     return null;
   }
 }
