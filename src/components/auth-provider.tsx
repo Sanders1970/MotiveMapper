@@ -2,10 +2,12 @@
 
 import { auth, db } from '@/lib/firebase';
 import type { User } from '@/lib/types';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import {
   doc,
-  onSnapshot,
+  getDoc,
+  serverTimestamp,
+  updateDoc,
 } from 'firebase/firestore';
 import { createContext, useEffect, useState } from 'react';
 
@@ -19,55 +21,62 @@ export const AuthContext = createContext<AuthContextType>({
   loading: true,
 });
 
+async function getUserProfile(firebaseUser: FirebaseUser): Promise<User | null> {
+  const userDocRef = doc(db, 'users', firebaseUser.uid);
+  console.log(`[AuthProvider] Stap 2: Firestore document opvragen voor UID: ${firebaseUser.uid}`);
+  const docSnap = await getDoc(userDocRef);
+
+  if (docSnap.exists()) {
+    console.log('[AuthProvider] Stap 3: Document gevonden in Firestore.');
+    const data = docSnap.data();
+
+    // Update last login timestamp
+    try {
+        await updateDoc(userDocRef, { lastLogin: serverTimestamp() });
+        console.log('[AuthProvider] Stap 4: "lastLogin" tijdstip bijgewerkt.');
+    } catch (error) {
+        console.error('[AuthProvider] Fout bij bijwerken lastLogin:', error);
+        // Continue even if this fails
+    }
+
+
+    const userProfile: User = {
+      uid: firebaseUser.uid,
+      email: firebaseUser.email,
+      displayName: data.displayName || 'Gebruiker',
+      role: data.role || 'user',
+      createdAt: data.createdAt || null,
+      lastLogin: data.lastLogin || null, // This will be slightly old, but fine
+      parentId: data.parentId || null,
+    };
+    console.log('[AuthProvider] Stap 5: Gebruikersprofiel succesvol samengesteld:', userProfile);
+    return userProfile;
+  } else {
+    console.error(`[AuthProvider] FOUT: Geen document gevonden in Firestore voor UID: ${firebaseUser.uid}. Inloggen mislukt.`);
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-
-        const unsubscribeSnapshot = onSnapshot(
-          userDocRef,
-          (docSnap) => {
-            if (docSnap.exists()) {
-              const data = docSnap.data();
-              // Construct a complete, safe user object.
-              setUser({
-                uid: firebaseUser.uid,
-                email: firebaseUser.email,
-                displayName:
-                  data.displayName || firebaseUser.displayName || 'User',
-                role: data.role || 'user',
-                createdAt: data.createdAt || null,
-                lastLogin: data.lastLogin || null,
-                parentId: data.parentId || null,
-                parentDisplayName: data.parentDisplayName || '',
-              });
-            } else {
-              // This can happen during registration before the Firestore doc is created.
-              // It's also a fallback if a user exists in Auth but not Firestore.
-              // For a normal login, we assume the doc must exist.
-              // Setting user to null will trigger a redirect to login, which is safer
-              // than having a partially-hydrated user object.
-              setUser(null);
-            }
-            setLoading(false);
-          },
-          (error) => {
-            console.error('Firestore onSnapshot error:', error);
-            setUser(null); // On error, log out the user to be safe.
-            setLoading(false);
-          }
-        );
-
-        return () => unsubscribeSnapshot();
+        console.log('[AuthProvider] Stap 1: Gebruiker is ingelogd bij Firebase Authentication. UID:', firebaseUser.uid);
+        try {
+          const userProfile = await getUserProfile(firebaseUser);
+          setUser(userProfile);
+        } catch (error) {
+          console.error('[AuthProvider] Kritieke fout bij ophalen profiel:', error);
+          setUser(null);
+        }
       } else {
-        // User is not logged in.
+        console.log('[AuthProvider] Gebruiker is uitgelogd of niet gevonden.');
         setUser(null);
-        setLoading(false);
       }
+      setLoading(false);
     });
 
     return () => unsubscribe();
