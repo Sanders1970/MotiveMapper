@@ -3,6 +3,7 @@
 import { auth, db } from '@/lib/firebase';
 import {
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
@@ -24,8 +25,14 @@ const loginSchema = z.object({
   password: z.string().min(1, { message: 'Wachtwoord is verplicht.' }),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email({ message: 'Ongeldig emailadres.' }),
+});
+
+
 export interface AuthState {
   error?: string;
+  success?: string;
 }
 
 export async function registerAction(
@@ -56,17 +63,14 @@ export async function registerAction(
     );
     const user = userCredential.user;
 
-    // DEBUG: Temporarily disable Firestore write to isolate the issue.
-    // If registration succeeds now, the problem is with Firestore rules.
-    console.log(`User ${user.uid} created in Auth. Skipping Firestore write for debugging.`);
-    // await setDoc(doc(db, 'users', user.uid), {
-    //   email: user.email,
-    //   displayName: displayName,
-    //   role: 'user',
-    //   parentId: null,
-    //   createdAt: serverTimestamp(),
-    //   lastLogin: serverTimestamp(),
-    // });
+    await setDoc(doc(db, 'users', user.uid), {
+      email: user.email,
+      displayName: displayName,
+      role: 'user',
+      parentId: null,
+      createdAt: serverTimestamp(),
+      lastLogin: serverTimestamp(),
+    });
   } catch (error) {
     console.error('Registration error:', error);
 
@@ -149,4 +153,35 @@ export async function loginAction(
   }
 
   redirect('/dashboard');
+}
+
+export async function forgotPasswordAction(
+  prevState: AuthState,
+  formData: FormData
+): Promise<AuthState> {
+  const validatedFields = forgotPasswordSchema.safeParse(
+    Object.fromEntries(formData.entries())
+  );
+
+  if (!validatedFields.success) {
+    return {
+      error: validatedFields.error.flatten().fieldErrors.email?.[0],
+    };
+  }
+
+  const { email } = validatedFields.data;
+
+  try {
+    await sendPasswordResetEmail(auth, email);
+    // For security reasons, we don't reveal if an email is registered or not.
+    return {
+      success: `Als er een account bestaat voor ${email}, is er een herstellink verzonden.`,
+    };
+  } catch (error: any) {
+    console.error('Password reset error:', error);
+    // Also return a generic success message on error to avoid user enumeration.
+     return {
+      success: `Als er een account bestaat voor ${email}, is er een herstellink verzonden.`,
+    };
+  }
 }
