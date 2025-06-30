@@ -56,44 +56,45 @@ export async function registerAction(
     );
     const user = userCredential.user;
 
-    await setDoc(doc(db, 'users', user.uid), {
-      email: user.email,
-      displayName: displayName,
-      role: 'user',
-      parentId: null,
-      createdAt: serverTimestamp(),
-      lastLogin: serverTimestamp(),
-    });
-  } catch (error: any) {
+    // DEBUG: Temporarily disable Firestore write to isolate the issue.
+    // If registration succeeds now, the problem is with Firestore rules.
+    console.log(`User ${user.uid} created in Auth. Skipping Firestore write for debugging.`);
+    // await setDoc(doc(db, 'users', user.uid), {
+    //   email: user.email,
+    //   displayName: displayName,
+    //   role: 'user',
+    //   parentId: null,
+    //   createdAt: serverTimestamp(),
+    //   lastLogin: serverTimestamp(),
+    // });
+  } catch (error) {
     console.error('Registration error:', error);
 
-    let errorMessage =
-      'Er is een onverwachte fout opgetreden bij de registratie.';
-    if (error.code) {
-      switch (error.code) {
-        case 'auth/email-already-in-use':
-          errorMessage = 'Dit emailadres is al geregistreerd.';
-          break;
-        case 'auth/weak-password':
-          errorMessage =
-            'Wachtwoord is te zwak. Gebruik minimaal 6 karakters.';
-          break;
-        case 'auth/invalid-email':
-          errorMessage = 'Het opgegeven emailadres is ongeldig.';
-          break;
-        case 'permission-denied':
-        case 'firestore/permission-denied':
-          errorMessage =
-            'Registratie mislukt: onvoldoende rechten om gebruikersprofiel aan te maken. Controleer je Firestore-regels.';
-          break;
-        default:
-          errorMessage = `Fout: ${error.code}. Probeer het opnieuw of controleer de Firebase-configuratie.`;
-          break;
-      }
-    } else if (error.message) {
-      errorMessage = error.message;
+    let errorMessage = 'An unexpected error occurred during registration.';
+    if (error instanceof Error) {
+        errorMessage = error.message;
+        if ('code' in error) {
+            const firebaseError = error as { code: string; message: string };
+            switch (firebaseError.code) {
+                case 'auth/email-already-in-use':
+                  errorMessage = 'This email address is already registered.';
+                  break;
+                case 'auth/weak-password':
+                  errorMessage = 'Password is too weak. Must be at least 6 characters long.';
+                  break;
+                case 'auth/invalid-email':
+                  errorMessage = 'The provided email address is invalid.';
+                  break;
+                case 'permission-denied':
+                case 'firestore/permission-denied':
+                  errorMessage = 'Registration failed: Insufficient permissions to create user profile. Please check your Firestore rules.';
+                  break;
+                default:
+                  errorMessage = `An error occurred: ${firebaseError.code}. Please try again.`;
+                  break;
+            }
+        }
     }
-
     return { error: errorMessage };
   }
 
