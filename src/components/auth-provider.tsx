@@ -8,6 +8,7 @@ import {
   getDoc,
   serverTimestamp,
   updateDoc,
+  setDoc,
 } from 'firebase/firestore';
 import { createContext, useEffect, useState } from 'react';
 
@@ -67,19 +68,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('[AuthProvider] Initialisatie: Auth state listener wordt nu ingesteld.');
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setLoading(true); // Begin met laden zodra de status verandert
       if (firebaseUser) {
         console.log('[AuthProvider] Stap 1: Gebruiker is ingelogd bij Firebase Authentication. UID:', firebaseUser.uid);
         const userProfile = await getUserProfile(firebaseUser);
         setUser(userProfile);
+        console.log('[AuthProvider] Stap 5: Gebruikersstatus is bijgewerkt in de app.');
       } else {
         console.log('[AuthProvider] Gebruiker is uitgelogd of niet gevonden.');
         setUser(null);
       }
       setLoading(false);
+      console.log('[AuthProvider] Klaar: Laden is voltooid.');
     });
 
-    return () => unsubscribe();
+    return () => {
+      console.log('[AuthProvider] Listener wordt opgeruimd.');
+      unsubscribe();
+    };
   }, []);
 
   const value = { user, loading };
