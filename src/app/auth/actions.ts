@@ -1,13 +1,12 @@
 
 'use server';
 
-import { auth, db } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
-import { doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
@@ -34,6 +33,11 @@ const forgotPasswordSchema = z.object({
 export interface AuthState {
   error?: string;
   success?: string;
+  user?: {
+    uid: string;
+    email: string | null;
+  };
+  displayName?: string;
 }
 
 export async function registerAction(
@@ -63,20 +67,20 @@ export async function registerAction(
       password
     );
     
-    await setDoc(doc(db, 'users', userCredential.user.uid), {
-      email: userCredential.user.email,
-      displayName: displayName,
-      role: 'user', 
-      createdAt: serverTimestamp(),
-      lastLogin: serverTimestamp(),
-      parentId: null,
-    });
+    // Return user info to the client to create the profile.
+    // This avoids server-side auth context issues with the Firebase client SDK.
+    return {
+        success: 'Account created! Finalizing profile...',
+        user: {
+            uid: userCredential.user.uid,
+            email: userCredential.user.email,
+        },
+        displayName: displayName,
+    }
     
   } catch (error: any) {
     return { error: error.message || 'Registratie mislukt: er is een onbekende fout opgetreden.' };
   }
-
-  redirect('/dashboard');
 }
 
 export async function loginAction(
@@ -99,14 +103,12 @@ export async function loginAction(
   const { email, password } = validatedFields.data;
 
   try {
-    const userCredential = await signInWithEmailAndPassword(
+    // We remove the updateDoc for lastLogin to avoid server-side auth issues.
+    await signInWithEmailAndPassword(
       auth,
       email,
       password
     );
-    await updateDoc(doc(db, 'users', userCredential.user.uid), {
-      lastLogin: serverTimestamp(),
-    });
   } catch (error: any) {
      return { error: error.message || 'Inloggen mislukt: er is een onbekende fout opgetreden.' };
   }
