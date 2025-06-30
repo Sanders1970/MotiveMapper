@@ -60,7 +60,7 @@ async function getUserProfile(firebaseUser: FirebaseUser): Promise<User | null> 
        console.error(`[AuthProvider] KRITIEKE FOUT: Kan geen verbinding maken met Firestore. De client is "offline". 
        Dit betekent waarschijnlijk dat de "Cloud Firestore API" niet is ingeschakeld voor project '${firebaseConfig.projectId}'.
        Controleer in de Google Cloud Console of u bent ingelogd met het juiste account dat toegang heeft tot dit project, 
-       en controleer of de API is ingeschakeld.
+       en controleer of de API is ingeschakeld en of er een factureringsaccount (Billing Account) aan het project is gekoppeld.
        `, error);
     } else {
       console.error('[AuthProvider] Kritieke fout bij ophalen profiel:', error);
