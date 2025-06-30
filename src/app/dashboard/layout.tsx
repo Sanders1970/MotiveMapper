@@ -20,6 +20,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 
+const adminRoles = ['admin', 'hoofdadmin', 'subsuperadmin', 'superadmin'];
+
 export default function DashboardLayout({
   children,
 }: {
@@ -46,6 +48,7 @@ export default function DashboardLayout({
     return null;
   }
 
+  const canAccessAdmin = adminRoles.includes(user.role);
 
   return (
     <SidebarProvider>
@@ -70,7 +73,7 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            {(user.role === 'admin' || user.role === 'superadmin') && (
+            {canAccessAdmin && (
                <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link href="/admin/users">

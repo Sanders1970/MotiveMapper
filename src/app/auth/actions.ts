@@ -60,6 +60,7 @@ export async function registerAction(
       email: user.email,
       displayName: displayName,
       role: 'user',
+      parentId: null,
       createdAt: serverTimestamp(),
       lastLogin: serverTimestamp(),
     });

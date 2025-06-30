@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { getUsers } from '@/app/admin/actions';
 import type { User, Role } from '@/lib/types';
+import { useAuth } from '@/hooks/use-auth';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -16,25 +17,30 @@ import { Button } from '@/components/ui/button';
 const roleVariantMap: Record<Role, string> = {
     user: 'bg-user-role hover:bg-user-role/80 text-white',
     admin: 'bg-admin-role hover:bg-admin-role/80 text-white',
+    hoofdadmin: 'bg-hoofdadmin-role hover:bg-hoofdadmin-role/80 text-white',
+    subsuperadmin: 'bg-subsuperadmin-role hover:bg-subsuperadmin-role/80 text-white',
     superadmin: 'bg-superadmin-role hover:bg-superadmin-role/80 text-white',
 };
 
 
 export default function AdminUsersPage() {
+    const { user: currentUser, loading: authLoading } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
 
     useEffect(() => {
-        async function fetchUsers() {
-            setLoading(true);
-            const userList = await getUsers();
-            setUsers(userList);
-            setLoading(false);
+        if (currentUser) {
+            async function fetchUsers() {
+                setLoading(true);
+                const userList = await getUsers(currentUser);
+                setUsers(userList);
+                setLoading(false);
+            }
+            fetchUsers();
         }
-        fetchUsers();
-    }, []);
+    }, [currentUser]);
 
     const filteredUsers = useMemo(() => {
         return users.filter(user => {
@@ -45,12 +51,14 @@ export default function AdminUsersPage() {
         });
     }, [users, searchTerm, roleFilter]);
 
+    const pageLoading = loading || authLoading;
+
     return (
         <div className="p-4 md:p-6">
             <Card>
                 <CardHeader>
                     <CardTitle>User Management</CardTitle>
-                    <CardDescription>View, search, and manage users.</CardDescription>
+                    <CardDescription>View, search, and manage users within your scope.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col sm:flex-row items-center gap-4 mb-4">
@@ -68,11 +76,13 @@ export default function AdminUsersPage() {
                                 <SelectItem value="all">All Roles</SelectItem>
                                 <SelectItem value="user">User</SelectItem>
                                 <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="hoofdadmin">Hoofdadmin</SelectItem>
+                                <SelectItem value="subsuperadmin">Sub Superadmin</SelectItem>
                                 <SelectItem value="superadmin">Super Admin</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
-                    {loading ? (
+                    {pageLoading ? (
                          <div className="flex justify-center items-center py-10">
                             <Loader2 className="h-8 w-8 animate-spin" />
                          </div>
@@ -112,7 +122,7 @@ export default function AdminUsersPage() {
                             </Table>
                         </div>
                     )}
-                    { !loading && filteredUsers.length === 0 && (
+                    { !pageLoading && filteredUsers.length === 0 && (
                         <div className="text-center py-10 text-muted-foreground">
                             No users found.
                         </div>

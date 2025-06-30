@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import React from 'react';
 
+const adminRoles = ['admin', 'hoofdadmin', 'subsuperadmin', 'superadmin'];
+
 export default function AdminLayout({
   children,
 }: {
@@ -20,7 +22,7 @@ export default function AdminLayout({
     );
   }
 
-  if (!user || !['admin', 'superadmin'].includes(user.role)) {
+  if (!user || !adminRoles.includes(user.role)) {
     redirect('/dashboard');
   }
 

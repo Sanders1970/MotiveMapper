@@ -1,6 +1,11 @@
 import type { Timestamp } from 'firebase/firestore';
 
-export type Role = 'user' | 'admin' | 'superadmin';
+export type Role =
+  | 'user'
+  | 'admin'
+  | 'hoofdadmin'
+  | 'subsuperadmin'
+  | 'superadmin';
 
 export interface User {
   uid: string;
@@ -10,4 +15,5 @@ export interface User {
   createdAt: Timestamp;
   lastLogin: Timestamp;
   selectedColors?: string[];
+  parentId?: string | null;
 }

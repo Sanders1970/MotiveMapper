@@ -43,6 +43,8 @@ body {
     --sidebar-ring: 188 31% 41%;
     --user-role: 125 10% 42%;
     --admin-role: 188 31% 41%;
+    --hoofdadmin-role: 188 31% 31%;
+    --subsuperadmin-role: 57 63% 37%;
     --superadmin-role: 57 63% 47%;
   }
   .dark {
@@ -80,6 +82,8 @@ body {
     --sidebar-ring: 188 31% 51%;
     --user-role: 125 10% 42%;
     --admin-role: 188 31% 41%;
+    --hoofdadmin-role: 188 31% 31%;
+    --subsuperadmin-role: 57 63% 37%;
     --superadmin-role: 57 63% 47%;
   }
 }

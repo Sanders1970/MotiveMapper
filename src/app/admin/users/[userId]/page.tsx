@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { getUser, updateUserRole } from '@/app/admin/actions';
-import type { User } from '@/lib/types';
+import type { User, Role } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
@@ -38,11 +38,11 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
     }
 
     const [formState, formAction] = useFormState(async (prevState: any, formData: FormData) => {
-        const role = formData.get('role') as 'user' | 'admin' | 'superadmin';
+        const role = formData.get('role') as Role;
         const result = await updateUserRole(userId, role);
         if (result.success) {
             toast({ title: "Success", description: "User role updated successfully." });
-            fetchUser();
+            fetchUser(); // Refetch user to display updated role
         } else {
             toast({ variant: 'destructive', title: "Error", description: result.error });
         }
@@ -104,6 +104,8 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
                                     <SelectContent>
                                         <SelectItem value="user">User</SelectItem>
                                         <SelectItem value="admin">Admin</SelectItem>
+                                        <SelectItem value="hoofdadmin">Hoofdadmin</SelectItem>
+                                        <SelectItem value="subsuperadmin">Sub Superadmin</SelectItem>
                                         <SelectItem value="superadmin">Super Admin</SelectItem>
                                     </SelectContent>
                                 </Select>
