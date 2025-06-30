@@ -21,50 +21,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const handleAuthStateChanged = (firebaseUser: FirebaseUser | null) => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         // User is authenticated, now get their data from Firestore.
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         
-        const unsubscribeSnapshot = onSnapshot(userDocRef, 
-          (docSnap) => {
-            if (docSnap.exists()) {
-              // We have the user data from Firestore.
-              setUser({
-                uid: firebaseUser.uid,
-                ...(docSnap.data() as Omit<User, 'uid'>),
-              });
-            } else {
-              // This is an edge case: authenticated user without a Firestore document.
-              // This could happen if the initial document write failed. Treat as not fully logged in.
-              console.error(`User document not found for UID: ${firebaseUser.uid}. Logging out.`);
-              setUser(null);
-            }
-            // We have a definitive answer (either user data or none), so stop loading.
-            setLoading(false);
-          }, 
-          (error) => {
-            // An error occurred fetching the document.
-            console.error("Firestore onSnapshot error:", error);
+        const unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            // We have the user data from Firestore.
+            const userData = docSnap.data();
+            setUser({
+              uid: firebaseUser.uid,
+              // Ensure role defaults to 'user' if not present
+              role: 'user', 
+              ...userData,
+            } as User);
+          } else {
+            // This can happen if the doc creation failed after registration.
+            // Treat as not fully logged in.
             setUser(null);
-            setLoading(false); // Stop loading on error too.
           }
-        );
-        
-        // Return the function to unsubscribe from snapshot listener on cleanup.
-        return unsubscribeSnapshot;
+          setLoading(false); // Stop loading ONLY after we have a firestore result
+        }, (error) => {
+          console.error("Firestore onSnapshot error:", error);
+          setUser(null);
+          setLoading(false);
+        });
 
+        return () => unsubscribeSnapshot(); // Cleanup snapshot listener
       } else {
         // User is not logged in.
         setUser(null);
         setLoading(false);
       }
-    };
+    });
 
-    const unsubscribeAuth = onAuthStateChanged(auth, handleAuthStateChanged);
-
-    // Cleanup subscription on component unmount.
-    return () => unsubscribeAuth();
+    // Cleanup auth subscription on component unmount.
+    return () => unsubscribe();
   }, []);
 
   const value = { user, loading };

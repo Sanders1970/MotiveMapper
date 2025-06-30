@@ -64,12 +64,11 @@ export async function registerAction(
     );
     const user = userCredential.user;
 
-    // This is the operation that likely fails due to Firestore rules
+    // Simplified user profile creation. Role will be added later.
     await setDoc(doc(db, 'users', user.uid), {
       email: user.email,
       displayName: displayName,
-      role: 'user',
-      parentId: null,
+      role: 'user', // Default role for now
       createdAt: serverTimestamp(),
       lastLogin: serverTimestamp(),
     });
@@ -109,10 +108,10 @@ export async function loginAction(
       email,
       password
     );
-    // Update last login timestamp
-     await updateDoc(doc(db, 'users', userCredential.user.uid), {
-      lastLogin: serverTimestamp(),
-    });
+    // Temporarily disable lastLogin update to simplify debugging
+    // await updateDoc(doc(db, 'users', userCredential.user.uid), {
+    //   lastLogin: serverTimestamp(),
+    // });
   } catch (error: any) {
     return { error: 'Login mislukt. Controleer uw e-mailadres, wachtwoord en Firestore-regels.' };
   }
