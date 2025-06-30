@@ -33,7 +33,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               ...userData,
             });
           } else {
-            setUser(null);
+            // This case handles a situation where the auth user exists but the
+            // Firestore document might not have been created yet (e.g., due to
+            // Firestore rules or latency). This prevents a redirect loop.
+            console.warn(`User document for UID ${firebaseUser.uid} not found in Firestore. Creating a temporary user object.`);
+            setUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              role: 'user', // Default to 'user' role
+              createdAt: null,
+              lastLogin: null,
+            });
           }
            setLoading(false);
         });

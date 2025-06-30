@@ -12,8 +12,8 @@ export interface User {
   email: string | null;
   displayName: string | null;
   role: Role;
-  createdAt: Timestamp;
-  lastLogin: Timestamp;
+  createdAt: Timestamp | null;
+  lastLogin: Timestamp | null;
   selectedColors?: string[];
   parentId?: string | null;
   parentDisplayName?: string;
