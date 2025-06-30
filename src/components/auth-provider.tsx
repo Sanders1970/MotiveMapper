@@ -2,8 +2,13 @@
 
 import { auth, db } from '@/lib/firebase';
 import type { User } from '@/lib/types';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import {
+  doc,
+  onSnapshot,
+  updateDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
 import { createContext, useEffect, useState } from 'react';
 
 export interface AuthContextType {
@@ -23,38 +28,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // This is a new login or session restoration.
-        // Update the lastLogin timestamp. This is robust and fixes data inconsistencies.
         const userDocRef = doc(db, 'users', firebaseUser.uid);
-        updateDoc(userDocRef, { lastLogin: serverTimestamp() }).catch(err => {
-            console.error("Failed to update lastLogin. This might be expected if the user document doesn't exist yet during registration.", err.code);
+
+        // Silently update lastLogin on every auth state change.
+        // This is a "fire and forget" operation. If it fails (e.g., during
+        // registration before the doc exists), it's not critical. It will
+        // succeed on all subsequent logins.
+        updateDoc(userDocRef, { lastLogin: serverTimestamp() }).catch(() => {
+          // Errors are ignored intentionally.
         });
 
-        // Base user object is available immediately. This prevents redirect loops.
-        setUser({ 
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
-            role: 'user' // Assume 'user' role until Firestore data loads
-        } as User);
-
-        // Now, listen for the full user profile from Firestore.
-        const unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
-          if (docSnap.exists()) {
-            // Firestore doc exists, merge with existing data to get the full profile.
-            setUser(prevUser => ({
-                ...prevUser!, // We know prevUser is not null here
-                ...docSnap.data(),
-            }));
+        const unsubscribeSnapshot = onSnapshot(
+          userDocRef,
+          (docSnap) => {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              // Construct a complete, safe user object.
+              setUser({
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                displayName:
+                  data.displayName || firebaseUser.displayName || 'User',
+                role: data.role || 'user',
+                createdAt: data.createdAt || null,
+                lastLogin: data.lastLogin || null, // Ensure lastLogin is at least null
+                parentId: data.parentId || null,
+                parentDisplayName: data.parentDisplayName || '',
+              });
+            } else {
+              // This handles the brief moment during registration where the auth
+              // user exists but the firestore doc doesn't yet.
+              setUser({
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                displayName: firebaseUser.displayName,
+                role: 'user', // Default role
+                createdAt: null,
+                lastLogin: null, // Default to null
+                parentId: null,
+              } as User);
+            }
+            setLoading(false);
+          },
+          (error) => {
+            console.error('Firestore onSnapshot error:', error);
+            setUser(null); // On error, log out the user to be safe.
+            setLoading(false);
           }
-          // If doc doesn't exist, we stick with the base user object.
-          // The registration process is responsible for creating it.
-          setLoading(false);
-        }, (error) => {
-          console.error("Firestore onSnapshot error:", error);
-          // On error, we still have the base user, but stop loading.
-          setLoading(false);
-        });
+        );
 
         return () => unsubscribeSnapshot();
       } else {
