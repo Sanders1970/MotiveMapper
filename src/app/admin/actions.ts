@@ -122,3 +122,41 @@ export async function updateUserRole(uid: string, role: Role) {
     return { success: false, error: 'Failed to update role.' };
   }
 }
+
+/**
+ * Checks if a target user is a subordinate of an admin user in the hierarchy.
+ * @param adminUserId The UID of the potential manager.
+ * @param targetUserId The UID of the potential subordinate.
+ * @returns A promise that resolves to true if the target is a subordinate, false otherwise.
+ */
+export async function isSubordinate(adminUserId: string, targetUserId: string): Promise<boolean> {
+    try {
+        let currentUserId: string | null = targetUserId;
+        // Max depth to prevent infinite loops from bad data or cycles
+        for (let i = 0; i < 10 && currentUserId; i++) {
+            if (currentUserId === adminUserId) {
+                // An admin cannot be their own subordinate
+                return false;
+            }
+            const userRef = doc(db, 'users', currentUserId);
+            const userSnap = await getDoc(userRef);
+
+            if (!userSnap.exists()) {
+                return false; // User not found in chain, so not a subordinate
+            }
+
+            const parentId = userSnap.data().parentId;
+
+            if (parentId === adminUserId) {
+                return true; // Found the admin in the parent chain
+            }
+            
+            // Move up the chain
+            currentUserId = parentId;
+        }
+        return false; // Reached top of chain or max depth without finding admin
+    } catch (error) {
+        console.error('Error checking subordinate status:', error);
+        return false;
+    }
+}

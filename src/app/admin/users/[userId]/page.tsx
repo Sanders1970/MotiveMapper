@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { getUser, updateUserRole } from '@/app/admin/actions';
+import { getUser, updateUserRole, isSubordinate } from '@/app/admin/actions';
 import type { User, Role } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,12 +23,38 @@ function RoleSubmitButton() {
   );
 }
 
+const roleDisplayMap: Record<Role, string> = {
+    user: 'User',
+    admin: 'Admin',
+    hoofdadmin: 'Hoofdadmin',
+    subsuperadmin: 'Sub Superadmin',
+    superadmin: 'Super Admin',
+};
+
+const assignableRolesMap: Record<Role, Role[]> = {
+    superadmin: ['user', 'admin', 'hoofdadmin', 'subsuperadmin', 'superadmin'],
+    subsuperadmin: ['user', 'admin', 'hoofdadmin'],
+    hoofdadmin: ['user', 'admin'],
+    admin: ['user'],
+    user: [],
+};
+
+const roleHierarchy: Record<Role, number> = {
+    user: 0,
+    admin: 1,
+    hoofdadmin: 2,
+    subsuperadmin: 3,
+    superadmin: 4,
+};
+
 export default function UserDetailPage({ params }: { params: { userId: string } }) {
     const { userId } = params;
     const { user: adminUser, loading: adminLoading } = useAuth();
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
+    const [canManageRole, setCanManageRole] = useState(false);
+    const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
 
     async function fetchUser() {
         setLoading(true);
@@ -54,6 +80,36 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
             fetchUser();
         }
     }, [userId]);
+
+    useEffect(() => {
+        if (adminUser) {
+            setAvailableRoles(assignableRolesMap[adminUser.role] || []);
+        }
+    }, [adminUser]);
+
+     useEffect(() => {
+        async function checkManagementPermission() {
+            if (!adminUser || !user || adminUser.uid === user.uid) {
+                setCanManageRole(false);
+                return;
+            };
+
+            if (adminUser.role === 'superadmin') {
+                setCanManageRole(true);
+                return;
+            }
+            
+            // Prevent managing users at the same or higher level in the hierarchy
+            if (roleHierarchy[adminUser.role] <= roleHierarchy[user.role]) {
+                setCanManageRole(false);
+                return;
+            }
+
+            const subordinate = await isSubordinate(adminUser.uid, user.uid);
+            setCanManageRole(subordinate);
+        }
+        checkManagementPermission();
+    }, [adminUser, user]);
 
 
     if (loading || adminLoading) {
@@ -91,7 +147,7 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
                 </CardContent>
             </Card>
 
-            {adminUser?.role === 'superadmin' && (
+            {canManageRole && (
                 <Card>
                     <CardHeader>
                         <CardTitle>Manage Role</CardTitle>
@@ -106,11 +162,11 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
                                         <SelectValue placeholder="Select a role" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="user">User</SelectItem>
-                                        <SelectItem value="admin">Admin</SelectItem>
-                                        <SelectItem value="hoofdadmin">Hoofdadmin</SelectItem>
-                                        <SelectItem value="subsuperadmin">Sub Superadmin</SelectItem>
-                                        <SelectItem value="superadmin">Super Admin</SelectItem>
+                                        {availableRoles.map(role => (
+                                            <SelectItem key={role} value={role}>
+                                                {roleDisplayMap[role]}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
