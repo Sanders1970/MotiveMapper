@@ -1,6 +1,6 @@
 'use client';
 
-import { auth, db } from '@/lib/firebase';
+import { auth, db, firebaseConfig } from '@/lib/firebase';
 import type { User } from '@/lib/types';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import {
@@ -32,7 +32,6 @@ async function getUserProfile(firebaseUser: FirebaseUser): Promise<User | null> 
       console.log('[AuthProvider] Stap 3: Document gevonden in Firestore.');
       const data = docSnap.data();
       
-      // Update last login timestamp in the background
       try {
         await updateDoc(userDocRef, { lastLogin: serverTimestamp() });
         console.log('[AuthProvider] Stap 3.5: "lastLogin" tijdstip succesvol bijgewerkt.');
@@ -58,7 +57,11 @@ async function getUserProfile(firebaseUser: FirebaseUser): Promise<User | null> 
     }
   } catch (error: any) {
     if (error.code === 'unavailable' || (error.message && error.message.includes('offline'))) {
-       console.error('[AuthProvider] KRITIEKE FOUT: Kan geen verbinding maken met Firestore. De client is "offline". Mogelijke oorzaken: (1) Firestore Database is niet aangemaakt/actief. (2) Security Rules blokkeren toegang. (3) Firebase configuratie is incorrect.', error);
+       console.error(`[AuthProvider] KRITIEKE FOUT: Kan geen verbinding maken met Firestore. De client is "offline". 
+       Dit betekent waarschijnlijk dat de "Cloud Firestore API" niet is ingeschakeld voor project '${firebaseConfig.projectId}'.
+       Controleer in de Google Cloud Console of u bent ingelogd met het juiste account dat toegang heeft tot dit project, 
+       en controleer of de API is ingeschakeld.
+       `, error);
     } else {
       console.error('[AuthProvider] Kritieke fout bij ophalen profiel:', error);
     }
