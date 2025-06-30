@@ -81,23 +81,36 @@ export async function registerAction(
       lastLogin: serverTimestamp(),
     });
   } catch (error: any) {
-    if (error.code === 'auth/email-already-in-use') {
-      return { error: 'Dit emailadres is al geregistreerd.' };
+    console.error('Registration error:', error);
+
+    let errorMessage =
+      'Er is een onverwachte fout opgetreden bij de registratie.';
+    if (error.code) {
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = 'Dit emailadres is al geregistreerd.';
+          break;
+        case 'auth/weak-password':
+          errorMessage =
+            'Wachtwoord is te zwak. Gebruik minimaal 6 karakters.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Het opgegeven emailadres is ongeldig.';
+          break;
+        case 'permission-denied':
+        case 'firestore/permission-denied':
+          errorMessage =
+            'Registratie mislukt: onvoldoende rechten om gebruikersprofiel aan te maken. Controleer je Firestore-regels.';
+          break;
+        default:
+          errorMessage = `Fout: ${error.code}. Probeer het opnieuw of controleer de Firebase-configuratie.`;
+          break;
+      }
+    } else if (error.message) {
+      errorMessage = error.message;
     }
-    if (error.code === 'auth/weak-password') {
-      return { error: 'Wachtwoord is te zwak. Gebruik minimaal 6 karakters.' };
-    }
-    if (error.code === 'auth/invalid-email') {
-      return { error: 'Het opgegeven emailadres is ongeldig.' };
-    }
-    if (error.code === 'permission-denied') {
-      return {
-        error:
-          'Registratie mislukt: onvoldoende rechten om gebruikersprofiel aan te maken. Controleer je Firestore-regels.',
-      };
-    }
-    console.error("Registration error:", error);
-    return { error: 'Er is een onverwachte fout opgetreden bij de registratie.' };
+
+    return { error: errorMessage };
   }
 
   redirect('/dashboard');
@@ -111,7 +124,7 @@ export async function loginAction(
   if (configError) {
     return { error: configError };
   }
-  
+
   const validatedFields = loginSchema.safeParse(
     Object.fromEntries(formData.entries())
   );
@@ -149,8 +162,10 @@ export async function loginAction(
     ) {
       return { error: 'Ongeldig emailadres of wachtwoord.' };
     }
-    console.error("Login error:", error);
-    return { error: 'Er is een onverwachte fout opgetreden tijdens het inloggen.' };
+    console.error('Login error:', error);
+    return {
+      error: 'Er is een onverwachte fout opgetreden tijdens het inloggen.',
+    };
   }
 
   redirect('/dashboard');
