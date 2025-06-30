@@ -6,8 +6,6 @@ import { onAuthStateChanged } from 'firebase/auth';
 import {
   doc,
   onSnapshot,
-  updateDoc,
-  serverTimestamp,
 } from 'firebase/firestore';
 import { createContext, useEffect, useState } from 'react';
 
@@ -30,14 +28,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (firebaseUser) {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
 
-        // Silently update lastLogin on every auth state change.
-        // This is a "fire and forget" operation. If it fails (e.g., during
-        // registration before the doc exists), it's not critical. It will
-        // succeed on all subsequent logins.
-        updateDoc(userDocRef, { lastLogin: serverTimestamp() }).catch(() => {
-          // Errors are ignored intentionally.
-        });
-
         const unsubscribeSnapshot = onSnapshot(
           userDocRef,
           (docSnap) => {
@@ -51,22 +41,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   data.displayName || firebaseUser.displayName || 'User',
                 role: data.role || 'user',
                 createdAt: data.createdAt || null,
-                lastLogin: data.lastLogin || null, // Ensure lastLogin is at least null
+                lastLogin: data.lastLogin || null,
                 parentId: data.parentId || null,
                 parentDisplayName: data.parentDisplayName || '',
               });
             } else {
-              // This handles the brief moment during registration where the auth
-              // user exists but the firestore doc doesn't yet.
-              setUser({
-                uid: firebaseUser.uid,
-                email: firebaseUser.email,
-                displayName: firebaseUser.displayName,
-                role: 'user', // Default role
-                createdAt: null,
-                lastLogin: null, // Default to null
-                parentId: null,
-              } as User);
+              // This can happen during registration before the Firestore doc is created.
+              // It's also a fallback if a user exists in Auth but not Firestore.
+              // For a normal login, we assume the doc must exist.
+              // Setting user to null will trigger a redirect to login, which is safer
+              // than having a partially-hydrated user object.
+              setUser(null);
             }
             setLoading(false);
           },
