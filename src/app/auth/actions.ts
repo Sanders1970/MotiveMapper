@@ -28,10 +28,26 @@ export interface AuthState {
   error?: string;
 }
 
+function checkFirebaseConfig() {
+  if (
+    !process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
+    !process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ||
+    !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+  ) {
+    return 'Firebase-configuratie ontbreekt. Vul de credentials in het .env-bestand in.';
+  }
+  return null;
+}
+
 export async function registerAction(
   prevState: AuthState,
   formData: FormData
 ): Promise<AuthState> {
+  const configError = checkFirebaseConfig();
+  if (configError) {
+    return { error: configError };
+  }
+
   const validatedFields = registerSchema.safeParse(
     Object.fromEntries(formData.entries())
   );
@@ -77,7 +93,7 @@ export async function registerAction(
     if (error.code === 'permission-denied') {
       return {
         error:
-          'Registratie mislukt: onvoldoende rechten om gebruikersprofiel aan te maken.',
+          'Registratie mislukt: onvoldoende rechten om gebruikersprofiel aan te maken. Controleer je Firestore-regels.',
       };
     }
     return { error: 'Er is een onverwachte fout opgetreden bij de registratie.' };
@@ -90,6 +106,11 @@ export async function loginAction(
   prevState: AuthState,
   formData: FormData
 ): Promise<AuthState> {
+  const configError = checkFirebaseConfig();
+  if (configError) {
+    return { error: configError };
+  }
+  
   const validatedFields = loginSchema.safeParse(
     Object.fromEntries(formData.entries())
   );
