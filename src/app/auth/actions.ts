@@ -62,21 +62,21 @@ export async function registerAction(
       email,
       password
     );
-    const user = userCredential.user;
-
-    // Simplified user profile creation. Role will be added later.
-    await setDoc(doc(db, 'users', user.uid), {
-      email: user.email,
+    // TEMPORARILY DISABLED a user profile creation in the database to isolate the server crash.
+    // This is a diagnostic step.
+    /*
+    await setDoc(doc(db, 'users', userCredential.user.uid), {
+      email: userCredential.user.email,
       displayName: displayName,
-      role: 'user', // Default role for now
+      role: 'user', 
       createdAt: serverTimestamp(),
       lastLogin: serverTimestamp(),
     });
+    */
     
   } catch (error: any) {
-    // Return a very specific, stable error message that doesn't cause a crash.
     return {
-        error: 'Registratie mislukt: Kan gebruikersprofiel niet aanmaken in de database. Controleer uw Firestore-beveiligingsregels.'
+        error: 'Registratie mislukt: Kan gebruiker niet aanmaken in Authenticatie.'
     };
   }
 
@@ -108,12 +108,14 @@ export async function loginAction(
       email,
       password
     );
-    // Temporarily disable lastLogin update to simplify debugging
-    // await updateDoc(doc(db, 'users', userCredential.user.uid), {
-    //   lastLogin: serverTimestamp(),
-    // });
+    // TEMPORARILY DISABLED lastLogin update to isolate the server crash.
+    /*
+    await updateDoc(doc(db, 'users', userCredential.user.uid), {
+      lastLogin: serverTimestamp(),
+    });
+    */
   } catch (error: any) {
-    return { error: 'Login mislukt. Controleer uw e-mailadres, wachtwoord en Firestore-regels.' };
+    return { error: 'Login mislukt. Controleer uw e-mailadres en wachtwoord.' };
   }
 
   redirect('/dashboard');
@@ -142,7 +144,6 @@ export async function forgotPasswordAction(
       success: `Als er een account bestaat voor ${email}, is er een herstellink verzonden.`,
     };
   } catch (error: any) {
-     // Return a generic success message even on error to prevent user enumeration
      return {
       success: `Als er een account bestaat voor ${email}, is er een herstellink verzonden.`,
     };
