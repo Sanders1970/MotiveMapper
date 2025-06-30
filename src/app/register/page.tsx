@@ -42,33 +42,21 @@ export default function RegisterPage() {
   const hasAttemptedProfileCreation = useRef(false);
 
   useEffect(() => {
-    if (state.error) {
-      toast({
-        variant: 'destructive',
-        title: 'Registratie Mislukt',
-        description: state.error,
-      });
-      setIsSubmitting(false);
-      hasAttemptedProfileCreation.current = false;
-    }
+    const processRegistration = async () => {
+        if (state?.success && state.user && !hasAttemptedProfileCreation.current) {
+            hasAttemptedProfileCreation.current = true;
+            setIsSubmitting(true);
 
-    if (state.success && state.user && !hasAttemptedProfileCreation.current) {
-        hasAttemptedProfileCreation.current = true;
-        setIsSubmitting(true);
-
-        const createUserProfile = async () => {
             const user = state.user!;
             const userEmail = user.email;
 
             if (!userEmail) {
                 toast({ variant: 'destructive', title: 'Registratie Mislukt', description: 'Gebruikers e-mail is niet beschikbaar.' });
                 setIsSubmitting(false);
-                // In een echte app zou je hier de aangemaakte auth user willen verwijderen.
                 return;
             }
 
             try {
-                // 1. Check for a valid invitation
                 const invitationsRef = collection(db, 'invitations');
                 const q = query(invitationsRef, where('email', '==', userEmail));
                 const invitationSnapshot = await getDocs(q);
@@ -79,11 +67,9 @@ export default function RegisterPage() {
                         title: 'Registratie niet toegestaan',
                         description: 'U moet zijn uitgenodigd door een beheerder om te kunnen registreren.',
                     });
-                    setIsSubmitting(false);
                     return;
                 }
 
-                // 2. Use invitation data to create user profile and delete invitation
                 const invitationDoc = invitationSnapshot.docs[0];
                 const invitationData = invitationDoc.data();
                 
@@ -112,14 +98,22 @@ export default function RegisterPage() {
                     title: 'Profiel aanmaken mislukt',
                     description: error.message,
                 });
-                 hasAttemptedProfileCreation.current = false;
+                hasAttemptedProfileCreation.current = false;
             } finally {
                 setIsSubmitting(false);
             }
-        };
-        
-        createUserProfile();
-    }
+        } else if (state?.error) {
+            toast({
+                variant: 'destructive',
+                title: 'Registratie Mislukt',
+                description: state.error,
+            });
+            setIsSubmitting(false);
+            hasAttemptedProfileCreation.current = false;
+        }
+    };
+    
+    processRegistration();
   }, [state, router, toast]);
 
   return (

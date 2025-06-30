@@ -35,14 +35,14 @@ export default function ForgotPasswordPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (state.error) {
+    if (state?.error) {
       toast({
         variant: 'destructive',
         title: 'Fout',
         description: state.error,
       });
     }
-  }, [state.error, toast]);
+  }, [state, toast]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -52,7 +52,7 @@ export default function ForgotPasswordPage() {
           <CardTitle className="text-2xl font-headline mt-4">Wachtwoord vergeten?</CardTitle>
           <CardDescription>Voer je e-mailadres in om een herstellink te ontvangen.</CardDescription>
         </CardHeader>
-        {state.success ? (
+        {state?.success ? (
            <CardContent>
              <Alert>
                 <Mail className="h-4 w-4" />
