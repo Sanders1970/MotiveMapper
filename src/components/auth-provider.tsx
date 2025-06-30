@@ -21,50 +21,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+    const handleAuthStateChanged = (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        // User is signed in. Immediately set a basic user object to prevent redirect loops.
-        // The role and other details will be filled in by the Firestore snapshot listener.
-        if (!user) { // Set initial user state only if not already set by snapshot
-           setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
-            role: 'user', // Default role, will be updated by Firestore
-            createdAt: null,
-            lastLogin: null,
-          });
-        }
-        
-        // Listen for real-time updates to the user document in Firestore
+        // User is authenticated, now get their data from Firestore.
         const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const unsubSnapshot = onSnapshot(userDocRef, (docSnap) => {
-          if (docSnap.exists()) {
-            // User document exists, update the user state with full data
-            const userData = docSnap.data() as Omit<User, 'uid'>;
-            setUser({
-              uid: firebaseUser.uid,
-              ...userData,
-            });
-          } else {
-             // This case might happen if the Firestore document creation is delayed or failed.
-            console.warn(`User document for UID ${firebaseUser.uid} not found in Firestore.`);
+        
+        const unsubscribeSnapshot = onSnapshot(userDocRef, 
+          (docSnap) => {
+            if (docSnap.exists()) {
+              // We have the user data from Firestore.
+              setUser({
+                uid: firebaseUser.uid,
+                ...(docSnap.data() as Omit<User, 'uid'>),
+              });
+            } else {
+              // This is an edge case: authenticated user without a Firestore document.
+              // This could happen if the initial document write failed. Treat as not fully logged in.
+              console.error(`User document not found for UID: ${firebaseUser.uid}. Logging out.`);
+              setUser(null);
+            }
+            // We have a definitive answer (either user data or none), so stop loading.
+            setLoading(false);
+          }, 
+          (error) => {
+            // An error occurred fetching the document.
+            console.error("Firestore onSnapshot error:", error);
+            setUser(null);
+            setLoading(false); // Stop loading on error too.
           }
-          setLoading(false);
-        }, (error) => {
-            console.error("Error fetching user document:", error);
-            setLoading(false); // Stop loading even if there's an error
-        });
+        );
+        
+        // Return the function to unsubscribe from snapshot listener on cleanup.
+        return unsubscribeSnapshot;
 
-        return () => unsubSnapshot(); // Cleanup the snapshot listener
       } else {
-        // User is signed out
+        // User is not logged in.
         setUser(null);
         setLoading(false);
       }
-    });
+    };
 
-    return () => unsubscribe(); // Cleanup the auth state listener
+    const unsubscribeAuth = onAuthStateChanged(auth, handleAuthStateChanged);
+
+    // Cleanup subscription on component unmount.
+    return () => unsubscribeAuth();
   }, []);
 
   const value = { user, loading };
