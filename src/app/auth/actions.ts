@@ -71,9 +71,22 @@ export async function registerAction(
     });
     
   } catch (error: any) {
-    console.error("Registration Firestore Error:", error);
+    console.error("Registration Server Error:", error); // For server logs
+    let errorMessage = 'Registratie mislukt. Een onbekende serverfout is opgetreden.';
+    if (error.code) {
+       switch (error.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = 'Dit e-mailadres is al in gebruik. Probeer in te loggen.';
+          break;
+        case 'permission-denied':
+           errorMessage = 'Database permissie geweigerd. Het gebruikersprofiel kon niet worden aangemaakt. Controleer de Firestore-regels.';
+           break;
+        default:
+          errorMessage = `Fout: ${error.code}. ${error.message}`;
+      }
+    }
     return {
-        error: 'Registratie mislukt: Kon gebruikersprofiel niet aanmaken in de database. Controleer de Firestore-regels en de serverlogboeken.'
+        error: errorMessage
     };
   }
 
@@ -109,8 +122,21 @@ export async function loginAction(
       lastLogin: serverTimestamp(),
     });
   } catch (error: any) {
-    console.error("Login Error:", error);
-    return { error: 'Login mislukt. Controleer uw e-mailadres en wachtwoord of de serverlogboeken.' };
+    console.error("Login Server Error:", error); // For server logs
+    let errorMessage = 'Login mislukt. Een onbekende serverfout is opgetreden.';
+    if (error.code) {
+       switch (error.code) {
+        case 'auth/invalid-credential':
+          errorMessage = 'Login mislukt. Controleer uw e-mailadres en wachtwoord.';
+          break;
+        case 'permission-denied':
+           errorMessage = 'Database permissie geweigerd. Kon de laatste login tijd niet bijwerken.';
+           break;
+        default:
+          errorMessage = `Fout: ${error.code}. ${error.message}`;
+      }
+    }
+     return { error: errorMessage };
   }
 
   redirect('/dashboard');
