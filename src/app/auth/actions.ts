@@ -71,33 +71,32 @@ export async function registerAction(
       createdAt: serverTimestamp(),
       lastLogin: serverTimestamp(),
     });
-  } catch (error) {
-    console.error('Registration error:', error);
+  } catch (error: any) {
+    console.error('Registration error:', JSON.stringify(error, null, 2));
 
     let errorMessage = 'An unexpected error occurred during registration.';
-    if (error instanceof Error) {
-        errorMessage = error.message;
-        if ('code' in error) {
-            const firebaseError = error as { code: string; message: string };
-            switch (firebaseError.code) {
-                case 'auth/email-already-in-use':
-                  errorMessage = 'This email address is already registered.';
-                  break;
-                case 'auth/weak-password':
-                  errorMessage = 'Password is too weak. Must be at least 6 characters long.';
-                  break;
-                case 'auth/invalid-email':
-                  errorMessage = 'The provided email address is invalid.';
-                  break;
-                case 'permission-denied':
-                case 'firestore/permission-denied':
-                  errorMessage = 'Registration failed: Insufficient permissions to create user profile. Please check your Firestore rules.';
-                  break;
-                default:
-                  errorMessage = `An error occurred: ${firebaseError.code}. Please try again.`;
-                  break;
-            }
+    if (error && typeof error === 'object' && 'code' in error) {
+        const firebaseError = error as { code: string; message: string };
+        switch (firebaseError.code) {
+            case 'auth/email-already-in-use':
+              errorMessage = 'This email address is already registered.';
+              break;
+            case 'auth/weak-password':
+              errorMessage = 'Password is too weak. Must be at least 6 characters long.';
+              break;
+            case 'auth/invalid-email':
+              errorMessage = 'The provided email address is invalid.';
+              break;
+            case 'permission-denied':
+            case 'firestore/permission-denied':
+              errorMessage = 'Registration failed: Insufficient permissions to create user profile. Please check your Firestore rules.';
+              break;
+            default:
+              errorMessage = `An error occurred: ${firebaseError.message} (Code: ${firebaseError.code}). Please try again.`;
+              break;
         }
+    } else if (error instanceof Error) {
+        errorMessage = error.message;
     }
     return { error: errorMessage };
   }
@@ -139,19 +138,24 @@ export async function loginAction(
       { merge: true }
     );
   } catch (error: any) {
-    if (
-      error.code === 'auth/invalid-credential' ||
-      error.code === 'auth/user-not-found' ||
-      error.code === 'auth/wrong-password'
-    ) {
-      return { error: 'Ongeldig emailadres of wachtwoord.' };
+    console.error('Login error:', JSON.stringify(error, null, 2));
+
+     if (error && typeof error === 'object' && 'code' in error) {
+        const firebaseError = error as { code: string; message: string };
+        switch (firebaseError.code) {
+            case 'auth/invalid-credential':
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+                return { error: 'Ongeldig emailadres of wachtwoord.' };
+            case 'permission-denied':
+            case 'firestore/permission-denied':
+                return { error: 'Login failed: Insufficient permissions to update user profile. Please check your Firestore rules.'};
+            default:
+                console.error('Login error:', firebaseError);
+                return { error: `Er is een onverwachte fout opgetreden: ${firebaseError.message}` };
+        }
     }
-     if (
-      error.code === 'permission-denied' ||
-      error.code === 'firestore/permission-denied'
-    ) {
-        return { error: 'Login failed: Insufficient permissions to update user profile. Please check your Firestore rules.'};
-    }
+    
     console.error('Login error:', error);
     return {
       error: 'Er is een onverwachte fout opgetreden tijdens het inloggen.',
