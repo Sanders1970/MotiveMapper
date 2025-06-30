@@ -73,11 +73,10 @@ export async function registerAction(
     });
     
   } catch (error) {
-    // This is a failsafe. If we land here, it means the Firestore rules are incorrect or database is not available.
-    // We return a generic but stable error message to prevent the server from crashing.
-    return {
-        error: 'Registratie mislukt. Controleer of de Firestore database en regels correct zijn ingesteld.'
-    };
+    if (error instanceof Error) {
+      return { error: `Registratie mislukt: ${error.message}` };
+    }
+    return { error: 'Er is een onbekende fout opgetreden bij de registratie.' };
   }
 
   redirect('/dashboard');
@@ -112,8 +111,10 @@ export async function loginAction(
       lastLogin: serverTimestamp(),
     });
   } catch (error) {
-     // Return a generic but stable error message to prevent server crash.
-     return { error: 'Inloggen mislukt. Controleer uw e-mailadres en wachtwoord.' };
+    if (error instanceof Error) {
+      return { error: `Inloggen mislukt: ${error.message}` };
+    }
+    return { error: 'Er is een onbekende fout opgetreden bij het inloggen.' };
   }
 
   redirect('/dashboard');
