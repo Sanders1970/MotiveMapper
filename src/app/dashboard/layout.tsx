@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Home, Settings, LogOut, Rocket, Shield, Loader2 } from "lucide-react";
+import { Home, Settings, LogOut, Rocket, Shield, Loader2, Database } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { auth } from "@/lib/firebase";
@@ -49,6 +49,7 @@ export default function DashboardLayout({
   }
 
   const canAccessAdmin = adminRoles.includes(user.role);
+  const isSuperAdmin = user.role === 'superadmin';
 
   return (
     <SidebarProvider>
@@ -79,6 +80,16 @@ export default function DashboardLayout({
                   <Link href="/admin/users">
                     <Shield />
                     <span>Admin</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+            {isSuperAdmin && (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link href="/admin/seed">
+                    <Database />
+                    <span>Seed Data</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
