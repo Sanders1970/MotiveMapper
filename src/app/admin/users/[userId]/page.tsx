@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useEffect, useState, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { getUser, updateUserRole } from '@/app/admin/actions';
 import type { User, Role } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
@@ -37,7 +37,7 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
         setLoading(false);
     }
 
-    const [formState, formAction] = useFormState(async (prevState: any, formData: FormData) => {
+    const [formState, formAction] = useActionState(async (prevState: any, formData: FormData) => {
         const role = formData.get('role') as Role;
         const result = await updateUserRole(userId, role);
         if (result.success) {

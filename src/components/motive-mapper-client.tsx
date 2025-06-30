@@ -1,13 +1,13 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { scanTextAction, type ActionState } from '@/app/dashboard/actions';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { MotivationIcon } from './motivation-icon';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useActionState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 const initialState: ActionState = {};
@@ -62,7 +62,7 @@ function ResultsDisplay({ state }: { state: ActionState }) {
 }
 
 export function MotiveMapperClient() {
-  const [state, formAction] = useFormState(scanTextAction, initialState);
+  const [state, formAction] = useActionState(scanTextAction, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
 
