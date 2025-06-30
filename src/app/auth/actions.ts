@@ -73,10 +73,10 @@ export async function registerAction(
     });
     
   } catch (error) {
-    // This is a failsafe. If we land here, it means the Firestore rules are incorrect.
-    // We do NOT inspect the 'error' object itself, as this was causing the server to crash.
+    // This is a failsafe. If we land here, it means the Firestore rules are incorrect or database is not available.
+    // We return a generic but stable error message to prevent the server from crashing.
     return {
-        error: 'Registratie mislukt. Controleer de Firestore-regels en zorg ervoor dat de database is aangemaakt.'
+        error: 'Registratie mislukt. Controleer of de Firestore database en regels correct zijn ingesteld.'
     };
   }
 
@@ -112,8 +112,7 @@ export async function loginAction(
       lastLogin: serverTimestamp(),
     });
   } catch (error) {
-     // This is a failsafe. If we land here, it means the user doesn't exist or password is wrong.
-     // The complex error object from Firebase was causing crashes, so we return a generic message.
+     // Return a generic but stable error message to prevent server crash.
      return { error: 'Inloggen mislukt. Controleer uw e-mailadres en wachtwoord.' };
   }
 
