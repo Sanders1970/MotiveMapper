@@ -5,7 +5,6 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
-  updateProfile,
 } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { redirect } from 'next/navigation';
@@ -69,12 +68,12 @@ export async function registerAction(
       role: 'user', 
       createdAt: serverTimestamp(),
       lastLogin: serverTimestamp(),
-      parentId: null,
     });
     
   } catch (error: any) {
+    console.error("Registration Firestore Error:", error);
     return {
-        error: 'Registratie mislukt: Kon gebruikersprofiel niet aanmaken in de database. Controleer de Firestore regels.'
+        error: 'Registratie mislukt: Kon gebruikersprofiel niet aanmaken in de database. Controleer de Firestore-regels en de serverlogboeken.'
     };
   }
 
@@ -110,7 +109,8 @@ export async function loginAction(
       lastLogin: serverTimestamp(),
     });
   } catch (error: any) {
-    return { error: 'Login mislukt. Controleer uw e-mailadres en wachtwoord.' };
+    console.error("Login Error:", error);
+    return { error: 'Login mislukt. Controleer uw e-mailadres en wachtwoord of de serverlogboeken.' };
   }
 
   redirect('/dashboard');
@@ -139,6 +139,7 @@ export async function forgotPasswordAction(
       success: `Als er een account bestaat voor ${email}, is er een herstellink verzonden.`,
     };
   } catch (error: any) {
+     console.error('Password reset error:', error);
      return {
       success: `Als er een account bestaat voor ${email}, is er een herstellink verzonden.`,
     };
