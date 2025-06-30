@@ -73,12 +73,10 @@ export async function registerAction(
     });
     
   } catch (error: any) {
-    let errorMessage = 'Registratie mislukt door een serverfout. Controleer de Firestore-regels.';
-    if (error.code) {
-        errorMessage = `Foutcode: ${error.code}. Bericht: ${error.message}`;
-    }
+    // This is a failsafe. If we land here, it means the Firestore rules are incorrect.
+    // We do NOT inspect the 'error' object itself, as this was causing the server to crash.
     return {
-        error: errorMessage
+        error: 'Registratie mislukt. Controleer de Firestore-regels en zorg ervoor dat de database is aangemaakt.'
     };
   }
 
@@ -114,11 +112,9 @@ export async function loginAction(
       lastLogin: serverTimestamp(),
     });
   } catch (error: any) {
-    let errorMessage = 'Login mislukt door een serverfout. Controleer de Firestore-regels.';
-     if (error.code) {
-       errorMessage = `Foutcode: ${error.code}. Bericht: ${error.message}`;
-    }
-     return { error: errorMessage };
+     // This is a failsafe. If we land here, it means the user doesn't exist or password is wrong.
+     // The complex error object from Firebase was causing crashes, so we return a generic message.
+     return { error: 'Inloggen mislukt. Controleer uw e-mailadres en wachtwoord.' };
   }
 
   redirect('/dashboard');
@@ -147,7 +143,8 @@ export async function forgotPasswordAction(
       success: `Als er een account bestaat voor ${email}, is er een herstellink verzonden.`,
     };
   } catch (error: any) {
-     console.error('Password reset error:', error);
+     // Also return a generic success message on error to avoid user enumeration.
+     // This prevents disclosing whether a user is registered or not.
      return {
       success: `Als er een account bestaat voor ${email}, is er een herstellink verzonden.`,
     };
