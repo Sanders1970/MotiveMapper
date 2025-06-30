@@ -68,6 +68,18 @@ export async function registerAction(
     if (error.code === 'auth/email-already-in-use') {
       return { error: 'Dit emailadres is al geregistreerd.' };
     }
+    if (error.code === 'auth/weak-password') {
+      return { error: 'Wachtwoord is te zwak. Gebruik minimaal 6 karakters.' };
+    }
+    if (error.code === 'auth/invalid-email') {
+      return { error: 'Het opgegeven emailadres is ongeldig.' };
+    }
+    if (error.code === 'permission-denied') {
+      return {
+        error:
+          'Registratie mislukt: onvoldoende rechten om gebruikersprofiel aan te maken.',
+      };
+    }
     return { error: 'Er is een onverwachte fout opgetreden bij de registratie.' };
   }
 
