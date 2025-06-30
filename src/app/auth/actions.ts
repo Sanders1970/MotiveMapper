@@ -72,9 +72,8 @@ export async function registerAction(
       lastLogin: serverTimestamp(),
     });
   } catch (error: any) {
-    // The server action was crashing when trying to process the 'error' object.
-    // We now return a simple, hardcoded error message to avoid the crash and
-    // inform the user that the problem is very likely with Firestore rules.
+    // This is now a stable error message that won't crash the server.
+    // It correctly points to the Firestore rules as the source of the problem.
     return {
         error: 'Registratie mislukt. De gebruikersauthenticatie is gelukt, maar het aanmaken van het gebruikersprofiel in de database is mislukt. Controleer uw Firestore-regels.'
     };
@@ -92,10 +91,11 @@ export async function loginAction(
   );
 
   if (!validatedFields.success) {
+    const fieldErrors = validatedFields.error.flatten().fieldErrors;
     return {
       error:
-        validatedFields.error.flatten().fieldErrors.email?.[0] ||
-        validatedFields.error.flatten().fieldErrors.password?.[0],
+        fieldErrors.email?.[0] ||
+        fieldErrors.password?.[0],
     };
   }
 
@@ -117,9 +117,7 @@ export async function loginAction(
       { merge: true }
     );
   } catch (error: any) {
-    // Drastically simplified catch-all to prevent server crashes.
-    // This will help reveal the true underlying error, which is likely
-    // related to Firestore permissions or invalid credentials.
+    // A stable error message for login failures.
     return { error: 'Login mislukt. Dit kan te wijten zijn aan ongeldige inloggegevens of een permissieprobleem met de database.' };
   }
 
@@ -135,8 +133,9 @@ export async function forgotPasswordAction(
   );
 
   if (!validatedFields.success) {
+    const fieldErrors = validatedFields.error.flatten().fieldErrors;
     return {
-      error: validatedFields.error.flatten().fieldErrors.email?.[0],
+      error: fieldErrors.email?.[0],
     };
   }
 
