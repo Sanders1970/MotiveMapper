@@ -1,5 +1,5 @@
 # Firebase Studio Project
 
-This is a NextJS starter in Firebase Studio, linked to the MotiveMapper application.
+This is a Next.js starter in Firebase Studio, linked to the MotiveMapper application.
 
-This project is ready for deployment.
+This project is now fully configured and ready for deployment via Firebase App Hosting.
