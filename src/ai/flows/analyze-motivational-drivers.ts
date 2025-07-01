@@ -1,4 +1,4 @@
-// 'use server';
+'use server';
 
 /**
  * @fileOverview Analyzes motivational drivers in user-provided text.
@@ -7,8 +7,6 @@
  * - AnalyzeMotivationalDriversInput - Input type for the analyzeMotivationalDrivers function.
  * - AnalyzeMotivationalDriversOutput - Output type for the analyzeMotivationalDrivers function.
  */
-
-'use server';
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
